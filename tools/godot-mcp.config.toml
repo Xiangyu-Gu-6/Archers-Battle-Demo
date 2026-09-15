@@ -1,0 +1,11 @@
+[mcp_servers.godot]
+command = 'C:\path\to\Archers-Battle-Demo\.tools\runtime\node.exe'
+args = ['C:\path\to\Archers-Battle-Demo\.tools\mcp\node_modules\@coding-solo\godot-mcp\build\index.js']
+cwd = 'C:\path\to\Archers-Battle-Demo'
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+enabled = true
+
+[mcp_servers.godot.env]
+GODOT_PATH = 'C:\path\to\Archers-Battle-Demo\.tools\godot\Godot_v4.7.2-stable_win64_console.exe'
+

@@ -37,6 +37,10 @@ var camera_goal := Vector2.ZERO
 var zoom_goal := Vector2.ONE
 var dragging := false
 var last_mouse := Vector2.ZERO
+var drag_hint_shown := false
+var temporary_full_view := false
+var saved_camera_goal := Vector2.ZERO
+var saved_zoom_goal := Vector2.ONE
 var trajectory := PackedVector2Array()
 var pending_player_shot := {}
 var last_player_shot := {}
@@ -58,6 +62,7 @@ var end_move_button: Button
 var return_button: Button
 var cancel_button: Button
 var skip_button: Button
+var enemy_button: Button
 var result_panel: PanelContainer
 var result_label: Label
 var again_button: Button
@@ -185,9 +190,17 @@ func _build_ui() -> void:
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.pressed.connect(func(): intro_skipped = true)
 	root.add_child(skip_button)
+	enemy_button = Button.new()
+	enemy_button.text = "查看敌人"
+	enemy_button.position = Vector2(735, 122)
+	enemy_button.size = Vector2(145, 44)
+	enemy_button.focus_mode = Control.FOCUS_NONE
+	enemy_button.pressed.connect(_view_enemy)
+	root.add_child(enemy_button)
 	seed_label = _make_label("", 13)
 	seed_label.position = Vector2(22, 112)
 	seed_label.add_theme_color_override("font_color", Color("#9ba6b7"))
+	seed_label.visible = OS.is_debug_build()
 	root.add_child(seed_label)
 	last_shot_label = _make_label("上一箭：尚无记录", 14)
 	last_shot_label.position = Vector2(905, 118)
@@ -229,6 +242,7 @@ func new_match(use_same_seed := false) -> void:
 	aim_hold_elapsed = 0.0
 	preview_update_elapsed = 0.0
 	dragging = false
+	temporary_full_view = false
 	intro_skipped = false
 	Input.action_release("move_left")
 	Input.action_release("move_right")
@@ -322,6 +336,7 @@ func _begin_turn() -> void:
 	phase = Phase.SELECT
 	hit_label.text = ""
 	_focus_actor(current_side)
+	status_label.text = "请选择行动" if current_side == 0 else "电脑正在观察地形……"
 	_update_ui()
 	if current_side == 1:
 		_ai_turn(turn_token)
@@ -363,7 +378,28 @@ func _cancel_action() -> void:
 	_update_ui()
 
 func _return_to_actor() -> void:
-	if phase in [Phase.SELECT, Phase.MOVE, Phase.AIM, Phase.CHARGE]: _focus_actor(current_side)
+	if phase in [Phase.SELECT, Phase.MOVE, Phase.AIM]:
+		temporary_full_view = false
+		_focus_actor(current_side)
+
+func _view_enemy() -> void:
+	if current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM]: return
+	temporary_full_view = false
+	_focus_actor(1)
+
+func _begin_full_view() -> void:
+	if current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM] or temporary_full_view: return
+	temporary_full_view = true
+	saved_camera_goal = camera_goal
+	saved_zoom_goal = zoom_goal
+	camera_goal = Vector2(balance.world_width * 0.5, 385.0)
+	zoom_goal = Vector2(0.5, 0.5)
+
+func _end_full_view() -> void:
+	if not temporary_full_view: return
+	temporary_full_view = false
+	camera_goal = saved_camera_goal
+	zoom_goal = saved_zoom_goal
 
 func _physics_process(delta: float) -> void:
 	var camera := get_node("BattleCamera") as Camera2D
@@ -399,6 +435,9 @@ func _physics_process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and current_side == 0:
+		if event.keycode == KEY_TAB and not event.echo:
+			if event.pressed: _begin_full_view()
+			else: _end_full_view()
 		if event.is_action("aim_up") or event.is_action("aim_down"):
 			var is_up := event.is_action("aim_up")
 			if event.pressed and not event.echo and phase == Phase.AIM:
@@ -423,9 +462,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_released("charge") and phase == Phase.CHARGE and charging:
 			charging = false
 			_fire_arrow(current_side, charge_power)
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and phase in [Phase.SELECT, Phase.MOVE, Phase.AIM, Phase.CHARGE]:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and phase in [Phase.SELECT, Phase.MOVE, Phase.AIM]:
 		dragging = event.pressed
 		last_mouse = event.position
+		if event.pressed and not drag_hint_shown:
+			drag_hint_shown = true
+			status_label.text = "拖动可观察战场；按 Tab 临时全景"
 	if event is InputEventMouseMotion and dragging and current_side == 0:
 		camera_goal -= event.relative / get_node("BattleCamera").zoom
 		camera_goal.x = clampf(camera_goal.x, 640.0, balance.world_width - 640.0)
@@ -438,7 +480,16 @@ func _notification(what: int) -> void:
 		charge_elapsed = 0.0
 		charge_power = 0.0
 		phase = Phase.AIM
+		aim_up_held = false
+		aim_down_held = false
+		dragging = false
+		_end_full_view()
 		status_label.text = "窗口焦点已恢复；请重新按空格蓄力"
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		aim_up_held = false
+		aim_down_held = false
+		dragging = false
+		_end_full_view()
 
 func _move_actor(actor, direction: float, delta: float) -> void:
 	var requested_distance := minf(balance.move_speed * delta, move_remaining)
@@ -520,7 +571,7 @@ func _on_arrow_stopped(result: Dictionary, token: int) -> void:
 		_update_last_shot_ui()
 		queue_redraw()
 	_update_ui()
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(1.0).timeout
 	if token != turn_token: return
 	if archers[0].health <= 0 or archers[1].health <= 0:
 		_end_game()
@@ -663,7 +714,7 @@ func _update_last_shot_ui() -> void:
 func _focus_actor(side: int) -> void:
 	camera_goal = archers[side].global_position + Vector2(0.0, -130.0)
 	camera_goal.x = clampf(camera_goal.x, 640.0, balance.world_width - 640.0)
-	camera_goal.y = 340.0
+	camera_goal.y = clampf(archers[side].global_position.y - 180.0, 260.0, 420.0)
 	zoom_goal = Vector2(1.0, 1.0)
 
 func _update_ui() -> void:
@@ -684,5 +735,6 @@ func _update_ui() -> void:
 	shoot_button.disabled = not player_can_choose
 	end_move_button.visible = current_side == 0 and phase == Phase.MOVE
 	cancel_button.visible = current_side == 0 and ((phase == Phase.MOVE and not move_committed) or (phase == Phase.AIM and not shot_committed))
-	return_button.disabled = current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM, Phase.CHARGE]
+	return_button.disabled = current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM]
+	enemy_button.visible = current_side == 0 and phase in [Phase.SELECT, Phase.MOVE, Phase.AIM]
 

@@ -1,10 +1,10 @@
-# 弓箭手对战 Demo
+# 弓箭手对战 Demo 3
 
 弓箭手对决：调整射击角度和力度，利用抛物线命中并击败对手。
 
 Godot 4.7.2 / GDScript / Compatibility 渲染器制作的电脑浏览器单人对战 Demo。
 
-当前版本：`0.3.0`。已接入“荒诞射手嘉年华”分层场景、随机地形纹理、草缘、装饰道具、翡翠游侠和船骸鲨客静态角色素材；玩法碰撞和数值保持不变。
+当前版本：`0.4.0-demo3`。在“荒诞射手嘉年华”场景基础上，翡翠游侠已接入真正的 `Skeleton2D/Bone2D` 骨骼与 16 个美术拆件；玩法碰撞、弹道和数值保持不变。
 
 ## 运行
 
@@ -23,6 +23,7 @@ Godot 引擎位于项目的 `.tools` 子目录，因此项目管理器会拒绝�
 & '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --editor --quit
 & '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/smoke_test.gd
 & '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/v2_acceptance_test.gd
+& '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/v3_acceptance_test.gd
 ```
 
 Web 导出：
@@ -45,4 +46,6 @@ Web 导出：
 
 ## 当前说明
 
-角色当前仍使用静态搭箭姿势，尚未拆分身体、手臂、弓弦和搭载箭，因此属于静态美术接入版本。数值集中在 `scripts/game_balance.gd`。随机地形最多尝试 20 次，使用三类模板、轮廓相似度检查和多个保底地形；AI、预测和实箭共享弹道步进逻辑。
+翡翠游侠由 17 根骨骼驱动 16 个刚性美术拆件：四肢使用双骨 IK，弓弦由程序实时绘制，搭载箭在释放时隐藏，并包含待机呼吸、移动摆动、瞄准、蓄力、放箭后坐和受击二级动作。船骸鲨客尚无可用拆件，因此本版仍使用静态角色图，但已经走同一套视觉状态接口。数值集中在 `scripts/game_balance.gd`；AI、预测和实箭继续共享弹道步进逻辑。
+
+Demo 3 的骨骼动画只改变视觉子节点，不移动角色根节点，也不参与命中检测。详细验收结果见 `验收记录_Demo3.md`。

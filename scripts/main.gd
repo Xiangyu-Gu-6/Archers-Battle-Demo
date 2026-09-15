@@ -40,6 +40,8 @@ var last_mouse := Vector2.ZERO
 var trajectory := PackedVector2Array()
 var pending_player_shot := {}
 var last_player_shot := {}
+var previous_terrain_signature := {}
+var move_reachable_interval := Vector2.ZERO
 var ui: CanvasLayer
 var turn_label: Label
 var status_label: Label
@@ -242,6 +244,7 @@ func new_match(use_same_seed := false) -> void:
 	result_panel.visible = false
 	again_button.disabled = true
 	var old_seed := current_seed
+	var old_signature := previous_terrain_signature.duplicate(true)
 	var old_arrow_count := landed_arrows.size() + (1 if is_instance_valid(active_arrow) and active_arrow.active else 0)
 	if is_instance_valid(match_root):
 		print("MATCH_RESET id=%d seed=%d arrows=%d children=%d" % [match_id - 1, old_seed, old_arrow_count, match_root.get_child_count()])
@@ -267,7 +270,8 @@ func new_match(use_same_seed := false) -> void:
 	else:
 		current_seed = rng.randi()
 		while current_seed == old_seed: current_seed = rng.randi()
-	var generated: Dictionary = terrain.generate(current_seed)
+	var generated: Dictionary = terrain.generate(current_seed, {} if use_same_seed else old_signature)
+	previous_terrain_signature = generated.signature
 	seed_label.text = "种子：%s · 生成尝试：%s%s" % [current_seed, generated.attempts, " · 备用地形" if generated.fallback else ""]
 	for archer in archers:
 		archer.health = balance.max_health
@@ -277,7 +281,7 @@ func new_match(use_same_seed := false) -> void:
 	archers[1].position = Vector2(terrain.random_spawn(1, spawn_rng), 0)
 	_snap_archers()
 	current_side = spawn_rng.randi_range(0, 1)
-	print("MATCH_READY id=%d seed=%d attempts=%d fallback=%s terrain=%s" % [match_id, current_seed, generated.attempts, generated.fallback, _terrain_summary()])
+	print("MATCH_READY id=%d seed=%d template=%s attempts=%d fallback=%s terrain=%s" % [match_id, current_seed, generated.template, generated.attempts, generated.fallback, _terrain_summary()])
 	rebuilding_match = false
 	again_button.disabled = false
 	_update_ui()
@@ -327,7 +331,9 @@ func _choose_move() -> void:
 	phase = Phase.MOVE
 	move_committed = false
 	move_start_position = archers[0].global_position
-	status_label.text = "移动预选：尚未位移，可返回选择"
+	move_reachable_interval = terrain.reachable_interval(archers[0].position.x, move_remaining, 0)
+	status_label.text = "移动预选：可达 %.0f—%.0f，尚未位移可返回" % [move_reachable_interval.x, move_reachable_interval.y]
+	queue_redraw()
 	_update_ui()
 
 func _choose_shoot() -> void:
@@ -435,10 +441,11 @@ func _notification(what: int) -> void:
 		status_label.text = "窗口焦点已恢复；请重新按空格蓄力"
 
 func _move_actor(actor, direction: float, delta: float) -> void:
-	var requested := minf(balance.move_speed * delta, move_remaining) * signf(direction)
+	var requested_distance := minf(balance.move_speed * delta, move_remaining)
 	var zone: Vector2 = terrain.left_zone if actor.side == 0 else terrain.right_zone
-	var next_x := clampf(actor.position.x + requested, zone.x + 20.0, zone.y - 20.0)
-	var actual := absf(next_x - actor.position.x)
+	var previous_x: float = actor.position.x
+	var next_x: float = terrain.advance_along_surface(previous_x, signf(direction), requested_distance, zone)
+	var actual: float = terrain.surface_distance(previous_x, next_x)
 	actor.position.x = next_x
 	actor.position.y = terrain.surface_y(next_x)
 	move_remaining = maxf(0.0, move_remaining - actual)
@@ -446,6 +453,10 @@ func _move_actor(actor, direction: float, delta: float) -> void:
 		move_committed = true
 		status_label.text = "行动已提交：移动中"
 	_focus_actor(actor.side)
+	if actor.side == 0:
+		move_reachable_interval = terrain.reachable_interval(actor.position.x, move_remaining, 0)
+		_update_last_shot_ui()
+		queue_redraw()
 	if move_remaining <= 0.01: _finish_action()
 
 func _snap_archers() -> void:
@@ -600,9 +611,9 @@ func _ai_move(token: int) -> void:
 		var step := minf(balance.move_speed * get_physics_process_delta_time(), distance)
 		var before: float = actor.position.x
 		var zone: Vector2 = terrain.right_zone
-		actor.position.x = clampf(actor.position.x + direction * step, zone.x + 20.0, zone.y - 20.0)
+		actor.position.x = terrain.advance_along_surface(actor.position.x, direction, step, zone)
 		actor.position.y = terrain.surface_y(actor.position.x)
-		distance -= absf(actor.position.x - before)
+		distance -= terrain.surface_distance(before, actor.position.x)
 		if is_equal_approx(before, actor.position.x): break
 		_focus_actor(1)
 	if token == turn_token: _finish_action()
@@ -627,6 +638,14 @@ func _draw() -> void:
 		draw_circle(marker, 10.0, marker_color, false, 2.0)
 		draw_line(marker + Vector2(-7, -7), marker + Vector2(7, 7), marker_color, 2.0)
 		draw_line(marker + Vector2(-7, 7), marker + Vector2(7, -7), marker_color, 2.0)
+	if phase == Phase.MOVE and current_side == 0 and move_reachable_interval.x < move_reachable_interval.y:
+		var range_points := PackedVector2Array()
+		var x := move_reachable_interval.x
+		while x < move_reachable_interval.y:
+			range_points.append(Vector2(x, terrain.surface_y(x) - 7.0))
+			x += 12.0
+		range_points.append(Vector2(move_reachable_interval.y, terrain.surface_y(move_reachable_interval.y) - 7.0))
+		if range_points.size() > 1: draw_polyline(range_points, Color("#64b5ff99"), 5.0, true)
 
 func _update_last_shot_ui() -> void:
 	if last_player_shot.is_empty():

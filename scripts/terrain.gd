@@ -6,62 +6,100 @@ var world_width := 2400.0
 var world_bottom := 760.0
 var heights: PackedFloat32Array
 var seed_value := 0
+var template_type := 0
+var primary_feature_x := 1200.0
 var left_zone := Vector2(190.0, 670.0)
 var right_zone := Vector2(1730.0, 2210.0)
 
-func generate(seed_to_use: int) -> Dictionary:
+func generate(seed_to_use: int, previous_signature := {}) -> Dictionary:
 	seed_value = seed_to_use
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var attempts := 0
 	while attempts < 20:
-		_build_candidate(rng)
-		if _basic_valid():
+		template_type = posmod(seed_value + attempts, 3)
+		_build_candidate(rng, template_type)
+		if _basic_valid() and not _too_similar(previous_signature):
 			queue_redraw()
-			return {"seed": seed_value, "attempts": attempts + 1, "fallback": false}
+			return {"seed": seed_value, "attempts": attempts + 1, "fallback": false, "template": template_name(), "signature": signature()}
 		attempts += 1
-	_build_fallback()
+	var previous_template := int(previous_signature.get("template", -1))
+	template_type = posmod(previous_template + 1 + int(seed_value % 2), 3)
+	_build_fallback(template_type)
 	queue_redraw()
-	return {"seed": seed_value, "attempts": 20, "fallback": true}
+	return {"seed": seed_value, "attempts": 20, "fallback": true, "template": template_name(), "signature": signature()}
 
-func _build_candidate(rng: RandomNumberGenerator) -> void:
+func _build_candidate(rng: RandomNumberGenerator, which_template: int) -> void:
 	var count := int(world_width / STEP) + 1
 	heights = PackedFloat32Array()
 	heights.resize(count)
-	var base := rng.randf_range(525.0, 585.0)
+	var base := rng.randf_range(515.0, 585.0)
 	var phase := rng.randf_range(0.0, TAU)
-	var hill_x := rng.randf_range(1020.0, 1380.0)
-	var hill_h := rng.randf_range(45.0, 125.0)
-	var hill_w := rng.randf_range(190.0, 360.0)
+	primary_feature_x = rng.randf_range(900.0, 1500.0)
+	var hill_h := rng.randf_range(38.0, 105.0)
+	var hill_w := rng.randf_range(210.0, 390.0)
+	var left_dip_x := rng.randf_range(390.0, 570.0)
+	var right_dip_x := rng.randf_range(1830.0, 2010.0)
 	for i in count:
 		var x := i * STEP
-		var rolling := sin(x / 310.0 + phase) * 48.0 + sin(x / 137.0 + phase * 0.7) * 17.0
-		var mound := hill_h * exp(-pow((x - hill_x) / hill_w, 2.0))
-		heights[i] = clampf(base + rolling - mound, 390.0, 620.0)
-	_limit_slopes(17.0)
-	_flatten_zone(left_zone.x, left_zone.y)
-	_flatten_zone(right_zone.x, right_zone.y)
-	_limit_slopes(16.0)
+		var side_detail := sin(x / 118.0 + phase) * 22.0 + sin(x / 245.0 + phase * 0.6) * 15.0
+		var shape := 0.0
+		match which_template:
+			0: # 低中央丘陵
+				shape = sin(x / 430.0 + phase) * 18.0 - hill_h * 0.72 * exp(-pow((x - primary_feature_x) / hill_w, 2.0))
+			1: # 左右不等高坡地
+				shape = lerpf(-58.0, 58.0, x / world_width) + sin(x / 360.0 + phase) * 23.0 - hill_h * 0.45 * exp(-pow((x - primary_feature_x) / hill_w, 2.0))
+			2: # 浅凹位错落坡地
+				var left_dip := 42.0 * exp(-pow((x - left_dip_x) / 175.0, 2.0))
+				var right_dip := 42.0 * exp(-pow((x - right_dip_x) / 175.0, 2.0))
+				shape = left_dip + right_dip - hill_h * 0.6 * exp(-pow((x - primary_feature_x) / hill_w, 2.0))
+		heights[i] = clampf(base + side_detail + shape, 390.0, 625.0)
+	_limit_slopes(13.0)
+	_soften_spawn_pad((left_zone.x + left_zone.y) * 0.5)
+	_soften_spawn_pad((right_zone.x + right_zone.y) * 0.5)
+	_limit_slopes(13.0)
 
-func _build_fallback() -> void:
+func _build_fallback(which_template: int) -> void:
 	var count := int(world_width / STEP) + 1
 	heights = PackedFloat32Array()
 	heights.resize(count)
 	for i in count:
 		var x := i * STEP
-		heights[i] = 555.0 + sin(x / 340.0) * 30.0 - 55.0 * exp(-pow((x - 1200.0) / 290.0, 2.0))
-	_flatten_zone(left_zone.x, left_zone.y)
-	_flatten_zone(right_zone.x, right_zone.y)
+		match which_template:
+			0: heights[i] = 550.0 + sin(x / 330.0) * 24.0 - 48.0 * exp(-pow((x - 1150.0) / 320.0, 2.0))
+			1: heights[i] = 500.0 + x / world_width * 92.0 + sin(x / 270.0) * 20.0
+			_: heights[i] = 535.0 + sin(x / 250.0) * 18.0 + 34.0 * exp(-pow((x - 480.0) / 180.0, 2.0)) + 34.0 * exp(-pow((x - 1920.0) / 180.0, 2.0)) - 42.0 * exp(-pow((x - 1260.0) / 300.0, 2.0))
+	primary_feature_x = 1150.0 if which_template == 0 else 1200.0 if which_template == 1 else 1260.0
+	_soften_spawn_pad((left_zone.x + left_zone.y) * 0.5)
+	_soften_spawn_pad((right_zone.x + right_zone.y) * 0.5)
+	_limit_slopes(13.0)
 
-func _flatten_zone(from_x: float, to_x: float) -> void:
-	var mid := (from_x + to_x) * 0.5
+func _soften_spawn_pad(mid: float) -> void:
 	var target := surface_y(mid)
 	for i in heights.size():
 		var x := i * STEP
-		if x >= from_x and x <= to_x:
-			var edge := minf((x - from_x) / 90.0, (to_x - x) / 90.0)
-			var blend := clampf(edge, 0.0, 1.0) * 0.72
-			heights[i] = lerpf(heights[i], target, blend)
+		var distance := absf(x - mid)
+		if distance <= 65.0:
+			heights[i] = lerpf(heights[i], target, 0.82 * (1.0 - distance / 65.0))
+
+func template_name() -> String:
+	return ["低中央丘陵", "左右不等高坡地", "浅凹位错落坡地"][template_type]
+
+func signature() -> Dictionary:
+	var samples := PackedFloat32Array()
+	for i in 25: samples.append(surface_y(world_width * float(i) / 24.0))
+	return {"template": template_type, "feature_x": primary_feature_x, "samples": samples}
+
+func _too_similar(previous: Dictionary) -> bool:
+	if previous.is_empty(): return false
+	var old_samples: PackedFloat32Array = previous.get("samples", PackedFloat32Array())
+	if old_samples.size() != 25: return false
+	var difference := 0.0
+	var current_signature: Dictionary = signature()
+	var current: PackedFloat32Array = current_signature.samples
+	for i in 25: difference += absf(current[i] - old_samples[i])
+	var average := difference / 25.0
+	return average < 15.0 and absf(primary_feature_x - float(previous.get("feature_x", -9999.0))) < 120.0
 
 func _limit_slopes(max_delta: float) -> void:
 	for i in range(1, heights.size()):
@@ -119,6 +157,36 @@ func segment_hit(a: Vector2, b: Vector2) -> Dictionary:
 func random_spawn(side: int, rng: RandomNumberGenerator) -> float:
 	var zone := left_zone if side == 0 else right_zone
 	return rng.randf_range(zone.x + 60.0, zone.y - 60.0)
+
+func surface_distance(from_x: float, to_x: float) -> float:
+	if is_equal_approx(from_x, to_x): return 0.0
+	var direction := signf(to_x - from_x)
+	var x := from_x
+	var distance := 0.0
+	while (to_x - x) * direction > 0.001:
+		var next_x := x + direction * minf(STEP * 0.25, absf(to_x - x))
+		distance += Vector2(x, surface_y(x)).distance_to(Vector2(next_x, surface_y(next_x)))
+		x = next_x
+	return distance
+
+func advance_along_surface(from_x: float, direction: float, distance: float, zone: Vector2) -> float:
+	var candidate := clampf(from_x + direction * distance, zone.x + 20.0, zone.y - 20.0)
+	if surface_distance(from_x, candidate) <= distance: return candidate
+	var low := minf(from_x, candidate)
+	var high := maxf(from_x, candidate)
+	for iteration in 12:
+		var middle := (low + high) * 0.5
+		if surface_distance(from_x, middle) <= distance:
+			if direction > 0.0: low = middle
+			else: high = middle
+		else:
+			if direction > 0.0: high = middle
+			else: low = middle
+	return low if direction > 0.0 else high
+
+func reachable_interval(start_x: float, budget: float, side: int) -> Vector2:
+	var zone := left_zone if side == 0 else right_zone
+	return Vector2(advance_along_surface(start_x, -1.0, budget, zone), advance_along_surface(start_x, 1.0, budget, zone))
 
 func _draw() -> void:
 	if heights.is_empty(): return

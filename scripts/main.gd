@@ -526,11 +526,22 @@ func _fire_arrow(side: int, power: float) -> void:
 	var shooter = archers[side]
 	var target = archers[1 - side]
 	if side == 0:
+		var shot_trace: Dictionary = BallisticsScript.trace(
+			shooter.muzzle_position(),
+			shooter.launch_direction() * balance.launch_speed(power),
+			balance.gravity,
+			balance.arrow_timeout,
+			balance.world_width,
+			balance.world_bottom,
+			terrain,
+			target
+		)
 		pending_player_shot = {
 			"angle": shooter.aim_angle,
 			"power": power,
 			"shooter_position": shooter.global_position,
-			"target_position": target.global_position
+			"target_position": target.global_position,
+			"trajectory": shot_trace.points
 		}
 	active_arrow = ArrowScript.new()
 	match_root.add_child(active_arrow)
@@ -677,6 +688,12 @@ func _update_trajectory(power: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	if not last_player_shot.is_empty() and last_player_shot.has("trajectory"):
+		var previous_path: PackedVector2Array = last_player_shot.trajectory
+		if previous_path.size() > 1:
+			for i in range(previous_path.size() - 1):
+				if i % 2 == 0:
+					draw_line(previous_path[i], previous_path[i + 1], Color("#76b9d844"), 2.0)
 	if trajectory.size() > 1:
 		for i in range(trajectory.size() - 1):
 			var progress := float(i) / maxf(1.0, trajectory.size() - 2.0)

@@ -94,6 +94,10 @@ func _test_ui_and_match_lifecycle() -> void:
 	check(game.phase == game.Phase.AIM, "shoot button must enter aim")
 	game.cancel_button.pressed.emit()
 	check(game.phase == game.Phase.SELECT, "uncommitted aim must be cancellable")
+	game.shoot_button.pressed.emit()
+	game._fire_arrow(0, 0.5)
+	check(game.pending_player_shot.has("trajectory"), "player shot must retain its previous trajectory")
+	check(game.pending_player_shot.trajectory.size() > 1, "retained player trajectory must contain drawable points")
 
 	var seeds := {}
 	for iteration in 20:
@@ -114,4 +118,3 @@ func _arc_length(points: PackedVector2Array) -> float:
 	var length := 0.0
 	for i in range(points.size() - 1): length += points[i].distance_to(points[i + 1])
 	return length
-

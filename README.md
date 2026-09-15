@@ -19,6 +19,8 @@ Godot 引擎位于项目的 `.tools` 子目录，因此项目管理器会拒绝�
 
 ```powershell
 & '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --editor --quit
+& '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/smoke_test.gd
+& '.\.tools\godot\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/v2_acceptance_test.gd
 ```
 
 Web 导出：
@@ -31,12 +33,13 @@ Web 导出：
 
 ## 操作
 
-- 点击“移动”后用 A/D 行走，移动与射击互斥。
-- 点击“射击”后用 W/S 调角，按住空格蓄力、松开发射。
+- 点击“移动”后用 A/D 行走，移动与射击互斥；尚未位移时可返回选择。
+- 点击“射击”后用 W/S 调角，轻按变化 0.5°，长按连续变化；按住 Shift 可精调。
+- 按住空格开始 4 秒往返蓄力，松开发射；预测显示完整试算路径的前半段。
 - 玩家行动阶段可在非 UI 区域按住鼠标左键拖动镜头。
+- 点击“查看敌人”切换目标；按住 Tab 临时查看全图，松开恢复此前镜头。
 - F6 使用相同种子重开（调试快捷键）。
 
 ## 当前说明
 
-画面全部为程序绘制的几何占位。数值集中在 `scripts/game_balance.gd`。随机地形最多尝试 20 次，失败使用保底地形；AI 搜索分帧执行并使用与实箭一致的运动公式。
-
+画面全部为程序绘制的几何占位。数值集中在 `scripts/game_balance.gd`。随机地形最多尝试 20 次，使用三类模板、轮廓相似度检查和多个保底地形；AI、预测和实箭共享弹道步进逻辑。

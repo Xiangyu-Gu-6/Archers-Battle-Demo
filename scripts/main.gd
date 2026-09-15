@@ -111,7 +111,7 @@ func _build_ui() -> void:
 	top.add_child(top_row)
 	var player_box := VBoxContainer.new()
 	player_box.custom_minimum_size = Vector2(310, 0)
-	player_hp_text = _make_label("玩家 100 / 100", 17)
+	player_hp_text = _make_label("PLAYER 100 / 100", 17)
 	player_hp = ProgressBar.new()
 	player_hp.custom_minimum_size = Vector2(300, 24)
 	player_hp.max_value = balance.max_health
@@ -130,7 +130,7 @@ func _build_ui() -> void:
 	top_row.add_child(center_box)
 	var ai_box := VBoxContainer.new()
 	ai_box.custom_minimum_size = Vector2(310, 0)
-	ai_hp_text = _make_label("电脑 100 / 100", 17)
+	ai_hp_text = _make_label("CPU 100 / 100", 17)
 	ai_hp_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	ai_hp = ProgressBar.new()
 	ai_hp.custom_minimum_size = Vector2(300, 24)
@@ -147,11 +147,11 @@ func _build_ui() -> void:
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", 12)
 	bottom.add_child(bottom_row)
-	move_button = Button.new(); move_button.text = "移动"
-	shoot_button = Button.new(); shoot_button.text = "射击"
-	end_move_button = Button.new(); end_move_button.text = "结束移动"
-	cancel_button = Button.new(); cancel_button.text = "返回选择"
-	return_button = Button.new(); return_button.text = "回到角色"
+	move_button = Button.new(); move_button.text = "MOVE"
+	shoot_button = Button.new(); shoot_button.text = "SHOOT"
+	end_move_button = Button.new(); end_move_button.text = "END MOVE"
+	cancel_button = Button.new(); cancel_button.text = "CANCEL"
+	return_button = Button.new(); return_button.text = "MY ARCHER"
 	for button in [move_button, shoot_button, end_move_button, cancel_button, return_button]:
 		button.custom_minimum_size = Vector2(102, 62)
 		button.focus_mode = Control.FOCUS_NONE
@@ -163,12 +163,12 @@ func _build_ui() -> void:
 	return_button.pressed.connect(_return_to_actor)
 	var meter_box := VBoxContainer.new()
 	meter_box.custom_minimum_size = Vector2(310, 0)
-	angle_label = _make_label("角度 45°", 17)
+	angle_label = _make_label("ANGLE 45°", 17)
 	power_bar = ProgressBar.new()
 	power_bar.max_value = 100
 	power_bar.custom_minimum_size = Vector2(300, 28)
 	power_bar.show_percentage = true
-	power_direction_label = _make_label("刻度 25 · 50 · 75", 13)
+	power_direction_label = _make_label("MARKS 25 · 50 · 75", 13)
 	power_direction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	meter_box.add_child(angle_label)
 	meter_box.add_child(power_bar)
@@ -176,22 +176,22 @@ func _build_ui() -> void:
 	bottom_row.add_child(meter_box)
 	var info_box := VBoxContainer.new()
 	info_box.custom_minimum_size = Vector2(240, 0)
-	move_label = _make_label("移动额度：80", 16)
-	var help := _make_label("A/D 移动 · W/S 调角 · Shift 精调\n按住空格蓄力，松开发射", 14)
+	move_label = _make_label("MOVE 180 / 180", 16)
+	var help := _make_label("A/D MOVE · W/S AIM · SHIFT FINE AIM\nHOLD SPACE TO CHARGE, RELEASE TO FIRE", 14)
 	help.add_theme_color_override("font_color", Color("#c4cbd6"))
 	info_box.add_child(move_label)
 	info_box.add_child(help)
 	bottom_row.add_child(info_box)
 
 	skip_button = Button.new()
-	skip_button.text = "跳过地图展示"
+	skip_button.text = "SKIP MAP INTRO"
 	skip_button.position = Vector2(1080, 122)
 	skip_button.size = Vector2(180, 44)
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.pressed.connect(func(): intro_skipped = true)
 	root.add_child(skip_button)
 	enemy_button = Button.new()
-	enemy_button.text = "查看敌人"
+	enemy_button.text = "VIEW ENEMY"
 	enemy_button.position = Vector2(735, 122)
 	enemy_button.size = Vector2(145, 44)
 	enemy_button.focus_mode = Control.FOCUS_NONE
@@ -202,7 +202,7 @@ func _build_ui() -> void:
 	seed_label.add_theme_color_override("font_color", Color("#9ba6b7"))
 	seed_label.visible = OS.is_debug_build()
 	root.add_child(seed_label)
-	last_shot_label = _make_label("上一箭：尚无记录", 14)
+	last_shot_label = _make_label("LAST SHOT: NONE", 14)
 	last_shot_label.position = Vector2(905, 118)
 	last_shot_label.size = Vector2(350, 72)
 	last_shot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -220,7 +220,7 @@ func _build_ui() -> void:
 	result_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	result_label = _make_label("", 30)
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	again_button = Button.new(); again_button.text = "再来一局"; again_button.custom_minimum_size = Vector2(220, 60); again_button.focus_mode = Control.FOCUS_NONE
+	again_button = Button.new(); again_button.text = "PLAY AGAIN"; again_button.custom_minimum_size = Vector2(220, 60); again_button.focus_mode = Control.FOCUS_NONE
 	again_button.pressed.connect(new_match)
 	result_box.add_child(result_label)
 	result_box.add_child(again_button)
@@ -252,7 +252,7 @@ func new_match(use_same_seed := false) -> void:
 	trajectory = PackedVector2Array()
 	pending_player_shot.clear()
 	last_player_shot.clear()
-	last_shot_label.text = "上一箭：尚无记录"
+	last_shot_label.text = "LAST SHOT: NONE"
 	queue_redraw()
 	hit_label.text = ""
 	result_panel.visible = false
@@ -276,7 +276,7 @@ func new_match(use_same_seed := false) -> void:
 	active_arrow = null
 	for i in 2:
 		var archer = ArcherScript.new()
-		archer.setup(i, "玩家" if i == 0 else "电脑", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
+		archer.setup(i, "Player" if i == 0 else "CPU", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
 		archers.append(archer)
 		match_root.add_child(archer)
 	if use_same_seed and current_seed != 0 and OS.is_debug_build():
@@ -286,7 +286,7 @@ func new_match(use_same_seed := false) -> void:
 		while current_seed == old_seed: current_seed = rng.randi()
 	var generated: Dictionary = terrain.generate(current_seed, {} if use_same_seed else old_signature)
 	previous_terrain_signature = generated.signature
-	seed_label.text = "种子：%s · 生成尝试：%s%s" % [current_seed, generated.attempts, " · 备用地形" if generated.fallback else ""]
+	seed_label.text = "SEED %s · ATTEMPTS %s%s" % [current_seed, generated.attempts, " · FALLBACK" if generated.fallback else ""]
 	for archer in archers:
 		archer.health = balance.max_health
 		archer.aim_angle = 45.0
@@ -311,8 +311,8 @@ func _terrain_summary() -> String:
 func _start_intro(token: int) -> void:
 	phase = Phase.INTRO
 	skip_button.visible = true
-	turn_label.text = "地图生成完毕"
-	status_label.text = "正在观察战场……"
+	turn_label.text = "MAP READY"
+	status_label.text = "SCOUTING THE FIELD..."
 	camera_goal = Vector2(balance.world_width * 0.5, 385.0)
 	zoom_goal = Vector2(0.50, 0.50)
 	var elapsed := 0.0
@@ -336,7 +336,7 @@ func _begin_turn() -> void:
 	phase = Phase.SELECT
 	hit_label.text = ""
 	_focus_actor(current_side)
-	status_label.text = "请选择行动" if current_side == 0 else "电脑正在观察地形……"
+	status_label.text = "CHOOSE AN ACTION" if current_side == 0 else "CPU IS SCOUTING..."
 	_update_ui()
 	if current_side == 1:
 		_ai_turn(turn_token)
@@ -347,7 +347,7 @@ func _choose_move() -> void:
 	move_committed = false
 	move_start_position = archers[0].global_position
 	move_reachable_interval = terrain.reachable_interval(archers[0].position.x, move_remaining, 0)
-	status_label.text = "移动预选：可达 %.0f—%.0f，尚未位移可返回" % [move_reachable_interval.x, move_reachable_interval.y]
+	status_label.text = "MOVE RANGE %.0f—%.0f · CANCEL BEFORE MOVING" % [move_reachable_interval.x, move_reachable_interval.y]
 	queue_redraw()
 	_update_ui()
 
@@ -356,7 +356,7 @@ func _choose_shoot() -> void:
 	phase = Phase.AIM
 	shot_committed = false
 	var preview_power := float(last_player_shot.get("power", 0.5))
-	status_label.text = "预览力度 %d%%，按住空格开始实际蓄力" % roundi(preview_power * 100.0)
+	status_label.text = "PREVIEW %d%% · HOLD SPACE TO CHARGE" % roundi(preview_power * 100.0)
 	_update_trajectory(preview_power)
 	_update_ui()
 
@@ -374,7 +374,7 @@ func _cancel_action() -> void:
 		return
 	trajectory = PackedVector2Array()
 	queue_redraw()
-	status_label.text = "请选择行动"
+	status_label.text = "CHOOSE AN ACTION"
 	_update_ui()
 
 func _return_to_actor() -> void:
@@ -458,7 +458,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			charge_elapsed = 0.0
 			preview_update_elapsed = 0.0
 			_focus_actor(0)
-			status_label.text = "行动已提交：蓄力中"
+			status_label.text = "ACTION LOCKED: CHARGING"
 		elif event.is_action_released("charge") and phase == Phase.CHARGE and charging:
 			charging = false
 			_fire_arrow(current_side, charge_power)
@@ -467,7 +467,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		last_mouse = event.position
 		if event.pressed and not drag_hint_shown:
 			drag_hint_shown = true
-			status_label.text = "拖动可观察战场；按 Tab 临时全景"
+			status_label.text = "DRAG TO SCOUT · HOLD TAB FOR FULL MAP"
 	if event is InputEventMouseMotion and dragging and current_side == 0:
 		camera_goal -= event.relative / get_node("BattleCamera").zoom
 		camera_goal.x = clampf(camera_goal.x, 640.0, balance.world_width - 640.0)
@@ -484,7 +484,7 @@ func _notification(what: int) -> void:
 		aim_down_held = false
 		dragging = false
 		_end_full_view()
-		status_label.text = "窗口焦点已恢复；请重新按空格蓄力"
+		status_label.text = "FOCUS RESTORED · PRESS SPACE AGAIN"
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		aim_up_held = false
 		aim_down_held = false
@@ -502,7 +502,7 @@ func _move_actor(actor, direction: float, delta: float) -> void:
 	move_remaining = maxf(0.0, move_remaining - actual)
 	if actual > 0.05 and not move_committed:
 		move_committed = true
-		status_label.text = "行动已提交：移动中"
+		status_label.text = "ACTION LOCKED: MOVING"
 	_focus_actor(actor.side)
 	if actor.side == 0:
 		move_reachable_interval = terrain.reachable_interval(actor.position.x, move_remaining, 0)
@@ -536,7 +536,7 @@ func _fire_arrow(side: int, power: float) -> void:
 	match_root.add_child(active_arrow)
 	active_arrow.launch(shooter.muzzle_position(), shooter.launch_direction() * balance.launch_speed(power), shooter, target, terrain, balance.gravity, balance.arrow_timeout)
 	active_arrow.stopped.connect(_on_arrow_stopped.bind(turn_token))
-	status_label.text = "%s发射：角度 %.1f°，力度 %d%%" % [shooter.display_name, shooter.aim_angle, roundi(power * 100.0)]
+	status_label.text = "%s FIRES · %.1f° · %d%%" % [shooter.display_name, shooter.aim_angle, roundi(power * 100.0)]
 	_update_ui()
 
 func _on_arrow_stopped(result: Dictionary, token: int) -> void:
@@ -554,14 +554,14 @@ func _on_arrow_stopped(result: Dictionary, token: int) -> void:
 		var damage: int = balance.damage_for(result.part)
 		var target = archers[1 - current_side]
 		target.apply_damage(damage)
-		var part_name: String = {&"head": "头部", &"torso": "躯干", &"legs": "腿脚"}[result.part]
+		var part_name: String = {&"head": "HEAD", &"torso": "TORSO", &"legs": "LEGS"}[result.part]
 		hit_label.text = "%s −%d" % [part_name, damage]
-		status_label.text = "%s命中%s！" % [archers[current_side].display_name, target.display_name]
+		status_label.text = "%s HITS %s!" % [archers[current_side].display_name, target.display_name]
 	else:
 		match result.kind:
-			&"terrain": hit_label.text = "命中地形"
-			&"timeout": hit_label.text = "飞行超时"
-			_: hit_label.text = "飞出边界"
+			&"terrain": hit_label.text = "GROUND HIT"
+			&"timeout": hit_label.text = "FLIGHT TIMEOUT"
+			_: hit_label.text = "OUT OF BOUNDS"
 	if current_side == 0:
 		last_player_shot = pending_player_shot.duplicate()
 		last_player_shot["kind"] = result.kind
@@ -587,16 +587,16 @@ func _end_game() -> void:
 	phase = Phase.GAME_OVER
 	turn_token += 1
 	var player_won: bool = archers[1].health <= 0
-	result_label.text = ("胜利！" if player_won else "惜败") + "\n\n玩家 %d / 电脑 %d" % [archers[0].health, archers[1].health]
+	result_label.text = ("VICTORY!" if player_won else "DEFEAT") + "\n\nPLAYER %d / CPU %d" % [archers[0].health, archers[1].health]
 	result_panel.visible = true
-	turn_label.text = "对局结束"
-	status_label.text = "点击“再来一局”生成新地图"
+	turn_label.text = "MATCH OVER"
+	status_label.text = "SELECT PLAY AGAIN FOR A NEW MAP"
 	_update_ui()
 
 func _ai_turn(token: int) -> void:
 	phase = Phase.SELECT
 	_update_ui()
-	status_label.text = "电脑正在观察地形……"
+	status_label.text = "CPU IS SCOUTING..."
 	await get_tree().create_timer(0.45).timeout
 	if token != turn_token: return
 	var solution: Dictionary = await _find_ai_shot(token)
@@ -607,7 +607,7 @@ func _ai_turn(token: int) -> void:
 	archers[1].aim_angle = clampf(solution.angle + rng.randf_range(-2.0, 2.0), balance.min_angle, balance.max_angle)
 	archers[1].queue_redraw()
 	phase = Phase.AIM
-	status_label.text = "电脑正在瞄准……"
+	status_label.text = "CPU IS AIMING..."
 	_focus_actor(1)
 	_update_trajectory(solution.power)
 	await get_tree().create_timer(0.55).timeout
@@ -653,7 +653,7 @@ func _simulate_shot(shooter, target, angle: float, power: float) -> Dictionary:
 
 func _ai_move(token: int) -> void:
 	phase = Phase.MOVE
-	status_label.text = "电脑选择移动，本回合不射击"
+	status_label.text = "CPU MOVES AND ENDS ITS TURN"
 	var actor = archers[1]
 	var direction := -1.0 if rng.randf() < 0.75 else 1.0
 	var distance := rng.randf_range(35.0, balance.move_budget)
@@ -700,16 +700,16 @@ func _draw() -> void:
 
 func _update_last_shot_ui() -> void:
 	if last_player_shot.is_empty():
-		last_shot_label.text = "上一箭：尚无记录"
+		last_shot_label.text = "LAST SHOT: NONE"
 		return
 	var outcome := ""
 	match last_player_shot.kind:
-		&"actor": outcome = {&"head": "命中头部", &"torso": "命中躯干", &"legs": "命中腿脚"}.get(last_player_shot.get("part", &""), "命中")
-		&"terrain": outcome = "撞地"
-		&"timeout": outcome = "超时"
-		_: outcome = "出界"
+		&"actor": outcome = {&"head": "HEAD HIT", &"torso": "TORSO HIT", &"legs": "LEG HIT"}.get(last_player_shot.get("part", &""), "HIT")
+		&"terrain": outcome = "GROUND"
+		&"timeout": outcome = "TIMEOUT"
+		_: outcome = "OUT"
 	var changed: bool = archers.size() == 2 and (archers[0].global_position.distance_to(last_player_shot.shooter_position) > 0.5 or archers[1].global_position.distance_to(last_player_shot.target_position) > 0.5)
-	last_shot_label.text = "上一箭：%.1f° · %d%% · %s%s" % [last_player_shot.angle, roundi(last_player_shot.power * 100.0), outcome, "\n站位已变化，参考为上次射击" if changed else ""]
+	last_shot_label.text = "LAST SHOT: %.1f° · %d%% · %s%s" % [last_player_shot.angle, roundi(last_player_shot.power * 100.0), outcome, "\nPOSITION CHANGED · REFERENCE ONLY" if changed else ""]
 
 func _focus_actor(side: int) -> void:
 	camera_goal = archers[side].global_position + Vector2(0.0, -130.0)
@@ -721,15 +721,15 @@ func _update_ui() -> void:
 	if not is_instance_valid(player_hp) or archers.size() < 2: return
 	player_hp.value = archers[0].health
 	ai_hp.value = archers[1].health
-	player_hp_text.text = "玩家 %d / %d" % [archers[0].health, archers[0].max_health]
-	ai_hp_text.text = "电脑 %d / %d" % [archers[1].health, archers[1].max_health]
-	angle_label.text = "角度 %.1f°" % archers[current_side].aim_angle
+	player_hp_text.text = "PLAYER %d / %d" % [archers[0].health, archers[0].max_health]
+	ai_hp_text.text = "CPU %d / %d" % [archers[1].health, archers[1].max_health]
+	angle_label.text = "ANGLE %.1f°" % archers[current_side].aim_angle
 	power_bar.value = charge_power * 100.0
 	var descending: bool = fmod(charge_elapsed, balance.charge_half_cycle * 2.0) > balance.charge_half_cycle
-	power_direction_label.text = "刻度 25 · 50 · 75    %s" % ("↓" if descending and phase == Phase.CHARGE else "↑" if phase == Phase.CHARGE else "")
-	move_label.text = "移动额度：%d / %d" % [roundi(move_remaining), roundi(balance.move_budget)]
+	power_direction_label.text = "MARKS 25 · 50 · 75    %s" % ("-" if descending and phase == Phase.CHARGE else "+" if phase == Phase.CHARGE else "")
+	move_label.text = "MOVE %d / %d" % [roundi(move_remaining), roundi(balance.move_budget)]
 	if phase not in [Phase.INTRO, Phase.GAME_OVER]:
-		turn_label.text = "%s行动" % archers[current_side].display_name
+		turn_label.text = "%s TURN" % archers[current_side].display_name.to_upper()
 	var player_can_choose := current_side == 0 and phase == Phase.SELECT
 	move_button.disabled = not player_can_choose
 	shoot_button.disabled = not player_can_choose
@@ -737,4 +737,3 @@ func _update_ui() -> void:
 	cancel_button.visible = current_side == 0 and ((phase == Phase.MOVE and not move_committed) or (phase == Phase.AIM and not shot_committed))
 	return_button.disabled = current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM]
 	enemy_button.visible = current_side == 0 and phase in [Phase.SELECT, Phase.MOVE, Phase.AIM]
-

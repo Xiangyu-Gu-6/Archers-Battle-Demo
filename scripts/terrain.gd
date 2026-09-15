@@ -83,7 +83,7 @@ func _soften_spawn_pad(mid: float) -> void:
 			heights[i] = lerpf(heights[i], target, 0.82 * (1.0 - distance / 65.0))
 
 func template_name() -> String:
-	return ["低中央丘陵", "左右不等高坡地", "浅凹位错落坡地"][template_type]
+	return ["Central Hill", "Split Slopes", "Shallow Basin"][template_type]
 
 func signature() -> Dictionary:
 	var samples := PackedFloat32Array()
@@ -203,4 +203,3 @@ func _draw() -> void:
 	draw_line(Vector2(left_zone.y, surface_y(left_zone.y) - 5.0), Vector2(left_zone.y, world_bottom), Color("#55a8ff55"), 2.0)
 	draw_line(Vector2(right_zone.x, surface_y(right_zone.x) - 5.0), Vector2(right_zone.x, world_bottom), Color("#ff766c55"), 2.0)
 	draw_line(Vector2(right_zone.y, surface_y(right_zone.y) - 5.0), Vector2(right_zone.y, world_bottom), Color("#ff766c55"), 2.0)
-

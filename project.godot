@@ -13,6 +13,7 @@ config_version=5
 config/name="弓箭手对战 Demo"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7")
+config/version="0.2.0"
 
 [display]
 
@@ -54,4 +55,3 @@ charge={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-

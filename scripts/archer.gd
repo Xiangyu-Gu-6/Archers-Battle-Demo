@@ -1,7 +1,7 @@
 class_name Archer
 extends Node2D
 
-var display_name := "弓箭手"
+var display_name := "Archer"
 var side := 0
 var health := 100
 var max_health := 100
@@ -91,5 +91,4 @@ func _draw() -> void:
 	draw_arc(Vector2(sign_dir * 29.0, -58.0), 24.0, -PI * 0.5, PI * 0.5, 18, Color("#e7c98d"), 3.0)
 	var aim := launch_direction()
 	draw_line(Vector2(0.0, -58.0), Vector2(0.0, -58.0) + aim * 42.0, Color("#f1eadb"), 2.0)
-
 

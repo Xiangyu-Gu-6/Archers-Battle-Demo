@@ -8,8 +8,12 @@ const ArrowScript := preload("res://scripts/arrow.gd")
 const BalanceScript := preload("res://scripts/game_balance.gd")
 
 var balance = BalanceScript.new()
+var match_root: Node2D
 var terrain
 var archers: Array = []
+var landed_arrows: Array = []
+var match_id := 0
+var rebuilding_match := false
 var current_side := 0
 var phase := Phase.GENERATING
 var turn_token := 0
@@ -43,6 +47,7 @@ var return_button: Button
 var skip_button: Button
 var result_panel: PanelContainer
 var result_label: Label
+var again_button: Button
 var hit_label: Label
 var seed_label: Label
 
@@ -54,15 +59,6 @@ func _ready() -> void:
 
 func _build_world() -> void:
 	RenderingServer.set_default_clear_color(Color("#101824"))
-	terrain = TerrainScript.new()
-	terrain.world_width = balance.world_width
-	terrain.world_bottom = balance.world_bottom
-	add_child(terrain)
-	for i in 2:
-		var archer = ArcherScript.new()
-		archer.setup(i, "玩家" if i == 0 else "电脑", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
-		archers.append(archer)
-		add_child(archer)
 	var camera := Camera2D.new()
 	camera.name = "BattleCamera"
 	camera.position = Vector2(640.0, 360.0)
@@ -185,23 +181,59 @@ func _build_ui() -> void:
 	result_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	result_label = _make_label("", 30)
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var again := Button.new(); again.text = "再来一局"; again.custom_minimum_size = Vector2(220, 60); again.focus_mode = Control.FOCUS_NONE
-	again.pressed.connect(new_match)
+	again_button = Button.new(); again_button.text = "再来一局"; again_button.custom_minimum_size = Vector2(220, 60); again_button.focus_mode = Control.FOCUS_NONE
+	again_button.pressed.connect(new_match)
 	result_box.add_child(result_label)
-	result_box.add_child(again)
+	result_box.add_child(again_button)
 	result_panel.add_child(result_box)
 	root.add_child(result_panel)
 	result_panel.visible = false
 
 func new_match(use_same_seed := false) -> void:
+	if rebuilding_match: return
+	rebuilding_match = true
 	turn_token += 1
+	match_id += 1
 	phase = Phase.GENERATING
 	charging = false
+	dragging = false
 	intro_skipped = false
-	if is_instance_valid(active_arrow): active_arrow.queue_free()
+	Input.action_release("move_left")
+	Input.action_release("move_right")
+	Input.action_release("aim_up")
+	Input.action_release("aim_down")
+	Input.action_release("charge")
+	trajectory = PackedVector2Array()
+	queue_redraw()
 	hit_label.text = ""
 	result_panel.visible = false
-	current_seed = current_seed if use_same_seed and current_seed != 0 else rng.randi()
+	again_button.disabled = true
+	var old_seed := current_seed
+	var old_arrow_count := landed_arrows.size() + (1 if is_instance_valid(active_arrow) and active_arrow.active else 0)
+	if is_instance_valid(match_root):
+		print("MATCH_RESET id=%d seed=%d arrows=%d children=%d" % [match_id - 1, old_seed, old_arrow_count, match_root.get_child_count()])
+		match_root.queue_free()
+		await get_tree().process_frame
+	match_root = Node2D.new()
+	match_root.name = "MatchRoot_%d" % match_id
+	add_child(match_root)
+	terrain = TerrainScript.new()
+	terrain.world_width = balance.world_width
+	terrain.world_bottom = balance.world_bottom
+	match_root.add_child(terrain)
+	archers.clear()
+	landed_arrows.clear()
+	active_arrow = null
+	for i in 2:
+		var archer = ArcherScript.new()
+		archer.setup(i, "玩家" if i == 0 else "电脑", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
+		archers.append(archer)
+		match_root.add_child(archer)
+	if use_same_seed and current_seed != 0 and OS.is_debug_build():
+		current_seed = old_seed
+	else:
+		current_seed = rng.randi()
+		while current_seed == old_seed: current_seed = rng.randi()
 	var generated: Dictionary = terrain.generate(current_seed)
 	seed_label.text = "种子：%s · 生成尝试：%s%s" % [current_seed, generated.attempts, " · 备用地形" if generated.fallback else ""]
 	for archer in archers:
@@ -212,8 +244,18 @@ func new_match(use_same_seed := false) -> void:
 	archers[1].position = Vector2(terrain.random_spawn(1, spawn_rng), 0)
 	_snap_archers()
 	current_side = spawn_rng.randi_range(0, 1)
+	print("MATCH_READY id=%d seed=%d attempts=%d fallback=%s terrain=%s" % [match_id, current_seed, generated.attempts, generated.fallback, _terrain_summary()])
+	rebuilding_match = false
+	again_button.disabled = false
 	_update_ui()
 	_start_intro(turn_token)
+
+func _terrain_summary() -> String:
+	if not is_instance_valid(terrain) or terrain.heights.is_empty(): return "empty"
+	var samples: Array[String] = []
+	for i in range(0, terrain.heights.size(), maxi(1, terrain.heights.size() / 8)):
+		samples.append(str(roundi(terrain.heights[i])))
+	return ",".join(samples)
 
 func _start_intro(token: int) -> void:
 	phase = Phase.INTRO
@@ -300,7 +342,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and dragging and current_side == 0:
 		camera_goal -= event.relative / get_node("BattleCamera").zoom
 		camera_goal.x = clampf(camera_goal.x, 640.0, balance.world_width - 640.0)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F6:
+	if OS.is_debug_build() and event is InputEventKey and event.pressed and event.keycode == KEY_F6:
 		new_match(true)
 
 func _notification(what: int) -> void:
@@ -338,7 +380,7 @@ func _fire_arrow(side: int, power: float) -> void:
 	var shooter = archers[side]
 	var target = archers[1 - side]
 	active_arrow = ArrowScript.new()
-	add_child(active_arrow)
+	match_root.add_child(active_arrow)
 	active_arrow.launch(shooter.muzzle_position(), shooter.launch_direction() * balance.launch_speed(power), shooter, target, terrain, balance.gravity, balance.arrow_timeout)
 	active_arrow.stopped.connect(_on_arrow_stopped.bind(turn_token))
 	status_label.text = "%s发射：角度 %.1f°，力度 %d%%" % [shooter.display_name, shooter.aim_angle, roundi(power * 100.0)]
@@ -347,6 +389,14 @@ func _fire_arrow(side: int, power: float) -> void:
 func _on_arrow_stopped(result: Dictionary, token: int) -> void:
 	if token != turn_token or phase != Phase.ARROW: return
 	phase = Phase.RESOLVE
+	if is_instance_valid(active_arrow):
+		if result.kind == &"miss":
+			active_arrow.queue_free()
+		else:
+			landed_arrows.append(active_arrow)
+			while landed_arrows.size() > 12:
+				var oldest = landed_arrows.pop_front()
+				if is_instance_valid(oldest): oldest.queue_free()
 	if result.kind == &"actor":
 		var damage: int = balance.damage_for(result.part)
 		var target = archers[1 - current_side]
@@ -499,7 +549,7 @@ func _focus_actor(side: int) -> void:
 	zoom_goal = Vector2(1.0, 1.0)
 
 func _update_ui() -> void:
-	if not is_instance_valid(player_hp): return
+	if not is_instance_valid(player_hp) or archers.size() < 2: return
 	player_hp.value = archers[0].health
 	ai_hp.value = archers[1].health
 	player_hp_text.text = "玩家 %d / %d" % [archers[0].health, archers[0].max_health]

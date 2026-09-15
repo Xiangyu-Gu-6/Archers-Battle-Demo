@@ -1,0 +1,27 @@
+[application]
+config/name="弓箭手对战 Demo"
+run/main_scene="res://scenes/Main.tscn"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[input]
+move_left={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":65)]}
+move_right={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":68)]}
+aim_up={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":87)]}
+aim_down={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":83)]}
+charge={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":32)]}
+
+[physics]
+common/physics_ticks_per_second=60
+
+

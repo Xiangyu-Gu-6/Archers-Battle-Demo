@@ -1,0 +1,31 @@
+{
+  "asset_version": 2,
+  "facing": "right",
+  "authoring_fps": 12,
+  "native_preview_scale": 0.38,
+  "gameplay_target_height_px": 100,
+  "root": "pelvis",
+  "light_direction": "upper_left",
+  "z_order_back_to_front": [
+    "quiver", "rear_leg", "rear_arm", "torso", "front_leg", "belt_pouch",
+    "head", "hat", "hat_feather", "front_arm", "bow", "bow_string", "arrow"
+  ],
+  "parts": {
+    "head": {"pivot_px": [151, 258], "attach_to": "pelvis", "offset_px": [8, -218]},
+    "hat": {"pivot_px": [162, 135], "attach_to": "pelvis", "offset_px": [2, -390]},
+    "hat_feather": {"pivot_px": [286, 184], "attach_to": "pelvis", "offset_px": [62, -408]},
+    "torso": {"pivot_px": [161, 240], "attach_to": "pelvis", "offset_px": [0, 0]},
+    "rear_upper_arm": {"pivot_px": [72, 36], "attach_to": "pelvis", "offset_px": [-45, -175]},
+    "rear_forearm_hand": {"pivot_px": [27, 61], "attach_to": "rear_upper_arm", "offset_px": [52, 218]},
+    "front_upper_arm": {"pivot_px": [106, 34], "attach_to": "pelvis", "offset_px": [38, -170]},
+    "front_forearm_hand": {"pivot_px": [30, 145], "attach_to": "front_upper_arm", "offset_px": [-42, 166]},
+    "rear_thigh": {"pivot_px": [66, 27], "attach_to": "pelvis", "offset_px": [-35, 18]},
+    "rear_lower_leg_boot": {"pivot_px": [76, 28], "attach_to": "rear_thigh", "offset_px": [44, 230]},
+    "front_thigh": {"pivot_px": [60, 28], "attach_to": "pelvis", "offset_px": [34, 18]},
+    "front_lower_leg_boot": {"pivot_px": [75, 28], "attach_to": "front_thigh", "offset_px": [-8, 190]},
+    "bow": {"pivot_px": [116, 158], "attach_to": "pelvis", "offset_px": [278, -155]},
+    "quiver": {"pivot_px": [116, 245], "attach_to": "pelvis", "offset_px": [-82, -92]},
+    "nocked_arrow": {"pivot_px": [20, 40], "attach_to": "pelvis", "offset_px": [245, -155]},
+    "belt_pouch": {"pivot_px": [95, 80], "attach_to": "pelvis", "offset_px": [74, -20]}
+  }
+}

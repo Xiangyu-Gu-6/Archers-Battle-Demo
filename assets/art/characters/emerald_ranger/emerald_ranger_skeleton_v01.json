@@ -1,0 +1,40 @@
+{
+  "rig_type": "Godot Skeleton2D",
+  "version": 1,
+  "facing": "right",
+  "authoring_fps": 12,
+  "root_bone": "Pelvis",
+  "bones": [
+    {"name": "Pelvis", "parent": null},
+    {"name": "Spine", "parent": "Pelvis"},
+    {"name": "Head", "parent": "Spine"},
+    {"name": "Hat", "parent": "Head"},
+    {"name": "Feather", "parent": "Hat", "secondary_motion": true},
+    {"name": "Quiver", "parent": "Spine", "secondary_motion": true},
+    {"name": "BeltPouch", "parent": "Pelvis", "secondary_motion": true},
+    {"name": "RearUpperArm", "parent": "Spine", "ik_chain": "draw_arm"},
+    {"name": "RearForearm", "parent": "RearUpperArm", "ik_chain": "draw_arm"},
+    {"name": "FrontUpperArm", "parent": "Spine", "ik_chain": "bow_arm"},
+    {"name": "FrontForearm", "parent": "FrontUpperArm", "ik_chain": "bow_arm"},
+    {"name": "BowGrip", "parent": "FrontForearm"},
+    {"name": "NockedArrow", "parent": "Skeleton2D"},
+    {"name": "RearThigh", "parent": "Pelvis", "ik_chain": "rear_leg"},
+    {"name": "RearShin", "parent": "RearThigh", "ik_chain": "rear_leg"},
+    {"name": "FrontThigh", "parent": "Pelvis", "ik_chain": "front_leg"},
+    {"name": "FrontShin", "parent": "FrontThigh", "ik_chain": "front_leg"}
+  ],
+  "ik_targets": {
+    "bow_hand": "animated aiming target",
+    "draw_hand": "animated draw target",
+    "front_foot": "terrain contact target",
+    "rear_foot": "terrain contact target"
+  },
+  "rigid_attachments": ["torso", "head", "hat", "bow", "quiver", "belt_pouch", "nocked_arrow"],
+  "deformable_or_overlap_attachments": ["upper_arms", "forearms", "thighs", "shins", "hat_feather"],
+  "gameplay_constraints": {
+    "changes_collision": false,
+    "changes_projectile_physics": false,
+    "changes_turn_timing": false
+  }
+}
+

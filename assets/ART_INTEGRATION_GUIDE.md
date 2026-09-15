@@ -38,6 +38,20 @@
 - 船骸鲨客的视觉体型更宽，但在策划批准差异化属性前仍使用与玩家相同的玩法碰撞尺寸。
 - 当前静态稿包含搭箭动作，只适合构图验证。进入动画制作时至少拆分：身体、前臂/后臂、弓、弦、搭载箭、箭袋；放箭后必须隐藏搭载箭。
 
+### 翡翠游侠切片骨架
+
+- 推荐使用 `art/characters/emerald_ranger/rig_parts_v02/`，羽毛单独选择 `emerald_ranger_hat_feather_v03.png`。
+- 默认关节、层级和锚点见 `art/characters/emerald_ranger/emerald_ranger_anchors_v02.json`；射击阶段与事件建议见同目录 `EMERALD_RANGER_RIG_SPEC.md`。
+- `animation_previews/emerald_ranger/emerald_ranger_shoot_preview.tscn` 是隔离预览，不应直接设为正式主场景，也不负责实例化玩法箭。
+- 预览用程序绘制弓弦；正式角色也建议用 `Line2D` 或等价线条节点连接弓梢和拉弦手，这样蓄力时不需要额外弦贴图。
+- 视觉根节点缩放到约 100 像素高后挂在现有角色节点下；头、躯干、腿的视觉分组继续对齐现有三段命中区，不从图片透明轮廓生成碰撞。
+
+### Skeleton2D 改进候选
+
+- 新候选位于 `animation_previews/emerald_ranger_skeleton/`，使用真正的 `Skeleton2D/Bone2D` 层级，不再直接旋转互相独立的部件节点。
+- 四肢使用双骨IK：持弓手追踪瞄准目标，拉弦手追踪蓄力目标，双脚追踪地表接触目标。
+- 正式绑定结构和约束见 `art/characters/emerald_ranger/EMERALD_RANGER_SKELETON_SPEC.md`；确认前不替换旧预览或正式角色引用。
+
 ## 道具
 
 - 帐篷、旅行车、星形靶均为透明高分辨率母版，默认只作为不可交互中景道具。

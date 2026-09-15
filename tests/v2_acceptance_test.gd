@@ -81,6 +81,12 @@ func _test_ui_and_match_lifecycle() -> void:
 	var game = MainScene.instantiate()
 	root.add_child(game)
 	while game.rebuilding_match: await process_frame
+	check(is_instance_valid(game.art_backdrop), "art backdrop must be configured")
+	check(is_instance_valid(game.art_backdrop.sky) and is_instance_valid(game.art_backdrop.far_layer) and is_instance_valid(game.art_backdrop.mid_layer), "all three environment layers must exist")
+	check(is_instance_valid(game.terrain.grass_line) and game.terrain.grass_line.points.size() == game.terrain.heights.size(), "grass edge must follow every terrain sample")
+	check(is_instance_valid(game.archers[0].art_sprite) and is_instance_valid(game.archers[1].art_sprite), "both character art sprites must exist")
+	var decorative_props = game.match_root.get_node_or_null("DecorativeProps")
+	check(is_instance_valid(decorative_props) and decorative_props.get_child_count() == 3, "three decorative prop assets must be configured")
 	game.turn_token += 1
 	game.current_side = 0
 	game.phase = game.Phase.SELECT

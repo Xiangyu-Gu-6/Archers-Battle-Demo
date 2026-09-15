@@ -2,6 +2,8 @@ class_name BattleTerrain
 extends Node2D
 
 const STEP := 40.0
+const SOIL_TEXTURE := preload("res://assets/art/environments/terrain_soil_tile_512_v01.png")
+const GRASS_TEXTURE := preload("res://assets/art/environments/terrain_grass_edge_strip_1024x64_v01.png")
 var world_width := 2400.0
 var world_bottom := 760.0
 var heights: PackedFloat32Array
@@ -10,6 +12,7 @@ var template_type := 0
 var primary_feature_x := 1200.0
 var left_zone := Vector2(190.0, 670.0)
 var right_zone := Vector2(1730.0, 2210.0)
+var grass_line: Line2D
 
 func generate(seed_to_use: int, previous_signature := {}) -> Dictionary:
 	seed_value = seed_to_use
@@ -20,13 +23,13 @@ func generate(seed_to_use: int, previous_signature := {}) -> Dictionary:
 		template_type = posmod(seed_value + attempts, 3)
 		_build_candidate(rng, template_type)
 		if _basic_valid() and not _too_similar(previous_signature):
-			queue_redraw()
+			_refresh_art()
 			return {"seed": seed_value, "attempts": attempts + 1, "fallback": false, "template": template_name(), "signature": signature()}
 		attempts += 1
 	var previous_template := int(previous_signature.get("template", -1))
 	template_type = posmod(previous_template + 1 + int(seed_value % 2), 3)
 	_build_fallback(template_type)
-	queue_redraw()
+	_refresh_art()
 	return {"seed": seed_value, "attempts": 20, "fallback": true, "template": template_name(), "signature": signature()}
 
 func _build_candidate(rng: RandomNumberGenerator, which_template: int) -> void:
@@ -191,15 +194,37 @@ func reachable_interval(start_x: float, budget: float, side: int) -> Vector2:
 func _draw() -> void:
 	if heights.is_empty(): return
 	var poly := PackedVector2Array([Vector2(0.0, world_bottom)])
+	var uvs := PackedVector2Array([Vector2(0.0, world_bottom / 512.0)])
 	var ridge := PackedVector2Array()
 	for i in heights.size():
 		var p := Vector2(i * STEP, heights[i])
 		poly.append(p)
+		uvs.append(p / 512.0)
 		ridge.append(p)
 	poly.append(Vector2(world_width, world_bottom))
-	draw_colored_polygon(poly, Color("#263f35"))
-	draw_polyline(ridge, Color("#8fc57f"), 5.0, true)
+	uvs.append(Vector2(world_width / 512.0, world_bottom / 512.0))
+	draw_colored_polygon(poly, Color.WHITE, uvs, SOIL_TEXTURE)
 	draw_line(Vector2(left_zone.x, surface_y(left_zone.x) - 5.0), Vector2(left_zone.x, world_bottom), Color("#55a8ff55"), 2.0)
 	draw_line(Vector2(left_zone.y, surface_y(left_zone.y) - 5.0), Vector2(left_zone.y, world_bottom), Color("#55a8ff55"), 2.0)
 	draw_line(Vector2(right_zone.x, surface_y(right_zone.x) - 5.0), Vector2(right_zone.x, world_bottom), Color("#ff766c55"), 2.0)
 	draw_line(Vector2(right_zone.y, surface_y(right_zone.y) - 5.0), Vector2(right_zone.y, world_bottom), Color("#ff766c55"), 2.0)
+
+func _refresh_art() -> void:
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	if not is_instance_valid(grass_line):
+		grass_line = Line2D.new()
+		grass_line.name = "GrassEdge"
+		grass_line.width = 56.0
+		grass_line.texture = GRASS_TEXTURE
+		grass_line.texture_mode = Line2D.LINE_TEXTURE_TILE
+		grass_line.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		grass_line.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		grass_line.joint_mode = Line2D.LINE_JOINT_ROUND
+		grass_line.begin_cap_mode = Line2D.LINE_CAP_BOX
+		grass_line.end_cap_mode = Line2D.LINE_CAP_BOX
+		grass_line.z_index = 1
+		add_child(grass_line)
+	var points := PackedVector2Array()
+	for i in heights.size(): points.append(Vector2(i * STEP, heights[i] + 22.0))
+	grass_line.points = points
+	queue_redraw()

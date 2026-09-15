@@ -1,12 +1,16 @@
 class_name Archer
 extends Node2D
 
+const PLAYER_TEXTURE := preload("res://assets/art/characters/emerald_ranger_ingame_100px_right_v01.png")
+const CPU_TEXTURE := preload("res://assets/art/characters/shipwreck_shark_ingame_100px_left_v01.png")
+
 var display_name := "Archer"
 var side := 0
 var health := 100
 var max_health := 100
 var aim_angle := 45.0
 var body_color := Color("#52a7ff")
+var art_sprite: Sprite2D
 
 func setup(which_side: int, label_text: String, color: Color, hp: int) -> void:
 	side = which_side
@@ -14,7 +18,18 @@ func setup(which_side: int, label_text: String, color: Color, hp: int) -> void:
 	body_color = color
 	max_health = hp
 	health = hp
+	_build_art_sprite()
 	queue_redraw()
+
+func _build_art_sprite() -> void:
+	if is_instance_valid(art_sprite): art_sprite.queue_free()
+	art_sprite = Sprite2D.new()
+	art_sprite.name = "CharacterArt"
+	art_sprite.texture = PLAYER_TEXTURE if side == 0 else CPU_TEXTURE
+	art_sprite.centered = false
+	art_sprite.position = Vector2(-80.0, -116.0)
+	art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(art_sprite)
 
 func facing_sign() -> float:
 	return 1.0 if side == 0 else -1.0
@@ -82,13 +97,6 @@ func _segment_rect(a: Vector2, b: Vector2, rect: Rect2) -> float:
 	return near
 
 func _draw() -> void:
-	var sign_dir := facing_sign()
-	draw_circle(Vector2(0.0, -86.0), 13.0, body_color)
-	draw_rect(Rect2(-18.0, -72.0, 36.0, 45.0), body_color)
-	draw_rect(Rect2(-14.0, -27.0, 10.0, 27.0), body_color.darkened(0.18))
-	draw_rect(Rect2(4.0, -27.0, 10.0, 27.0), body_color.darkened(0.18))
-	draw_line(Vector2(sign_dir * 13.0, -63.0), Vector2(sign_dir * 31.0, -50.0), body_color.lightened(0.15), 7.0)
-	draw_arc(Vector2(sign_dir * 29.0, -58.0), 24.0, -PI * 0.5, PI * 0.5, 18, Color("#e7c98d"), 3.0)
 	var aim := launch_direction()
-	draw_line(Vector2(0.0, -58.0), Vector2(0.0, -58.0) + aim * 42.0, Color("#f1eadb"), 2.0)
+	draw_line(Vector2(0.0, -58.0), Vector2(0.0, -58.0) + aim * 42.0, Color("#fff0a8dd"), 2.5)
 

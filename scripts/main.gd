@@ -7,6 +7,7 @@ const ArcherScript := preload("res://scripts/archer.gd")
 const ArrowScript := preload("res://scripts/arrow.gd")
 const BalanceScript := preload("res://scripts/game_balance.gd")
 const BallisticsScript := preload("res://scripts/ballistics.gd")
+const ArtBackdropScript := preload("res://scripts/art_backdrop.gd")
 
 var balance = BalanceScript.new()
 var match_root: Node2D
@@ -70,6 +71,7 @@ var hit_label: Label
 var seed_label: Label
 var last_shot_label: Label
 var power_direction_label: Label
+var art_backdrop
 
 func _ready() -> void:
 	rng.randomize()
@@ -85,6 +87,10 @@ func _build_world() -> void:
 	camera.position_smoothing_enabled = false
 	add_child(camera)
 	camera.make_current()
+	art_backdrop = ArtBackdropScript.new()
+	art_backdrop.name = "ArtBackdrop"
+	add_child(art_backdrop)
+	art_backdrop.setup(camera, balance.world_width)
 
 func _make_label(text_value: String, size := 18) -> Label:
 	var label := Label.new()
@@ -206,7 +212,9 @@ func _build_ui() -> void:
 	last_shot_label.position = Vector2(905, 118)
 	last_shot_label.size = Vector2(350, 72)
 	last_shot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	last_shot_label.add_theme_color_override("font_color", Color("#b9c5d8"))
+	last_shot_label.add_theme_color_override("font_color", Color("#26384a"))
+	last_shot_label.add_theme_color_override("font_outline_color", Color("#fff7dfcc"))
+	last_shot_label.add_theme_constant_override("outline_size", 3)
 	root.add_child(last_shot_label)
 	hit_label = _make_label("", 28)
 	hit_label.position = Vector2(460, 126)
@@ -276,7 +284,7 @@ func new_match(use_same_seed := false) -> void:
 	active_arrow = null
 	for i in 2:
 		var archer = ArcherScript.new()
-		archer.setup(i, "Player" if i == 0 else "CPU", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
+		archer.setup(i, "Emerald Ranger" if i == 0 else "Shipwreck Shark", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
 		archers.append(archer)
 		match_root.add_child(archer)
 	if use_same_seed and current_seed != 0 and OS.is_debug_build():
@@ -285,6 +293,7 @@ func new_match(use_same_seed := false) -> void:
 		current_seed = rng.randi()
 		while current_seed == old_seed: current_seed = rng.randi()
 	var generated: Dictionary = terrain.generate(current_seed, {} if use_same_seed else old_signature)
+	art_backdrop.add_match_props(match_root, terrain, current_seed)
 	previous_terrain_signature = generated.signature
 	seed_label.text = "SEED %s · ATTEMPTS %s%s" % [current_seed, generated.attempts, " · FALLBACK" if generated.fallback else ""]
 	for archer in archers:
@@ -736,6 +745,7 @@ func _focus_actor(side: int) -> void:
 
 func _update_ui() -> void:
 	if not is_instance_valid(player_hp) or archers.size() < 2: return
+	last_shot_label.visible = phase != Phase.INTRO
 	player_hp.value = archers[0].health
 	ai_hp.value = archers[1].health
 	player_hp_text.text = "PLAYER %d / %d" % [archers[0].health, archers[0].max_health]

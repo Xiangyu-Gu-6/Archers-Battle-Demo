@@ -1,7 +1,7 @@
 # 弓箭手对战：美术资产清单
 
 更新日期：2026-09-15  
-当前阶段：静态风格已确认；翡翠游侠已完成首轮切片骨架与射击动画竖切，尚未接入正式战斗场景
+当前阶段：Demo 3 已将翡翠游侠 Skeleton2D 骨骼、切片美术和射击动画接入正式战斗场景
 
 ## 新增文件
 
@@ -65,7 +65,7 @@
 | 文件 | 用途 | 像素尺寸 | 状态 |
 | --- | --- | ---: | --- |
 | `animation_previews/emerald_ranger_skeleton/emerald_ranger_skeleton_preview.tscn` | 真正的 `Skeleton2D/Bone2D` 独立预览入口 | 1280×720 基准视口 | 候选 |
-| `animation_previews/emerald_ranger_skeleton/emerald_ranger_skeleton_preview.gd` | 17 骨层级、双骨IK、弓弦和二级摆动 | 不适用 | 候选 |
+| `animation_previews/emerald_ranger_skeleton/emerald_ranger_skeleton_preview.gd` | 17 骨层级、双骨IK、弓弦和二级摆动 | 不适用 | 已作为正式接入参考 |
 | `animation_previews/emerald_ranger_skeleton/emerald_ranger_skeleton_preview_{idle,anticipation,charge,release,recoil,recover}_v01.png` | 六张骨骼动画关键阶段图 | 各 1280×720 | QA |
 | `animation_previews/emerald_ranger_skeleton/emerald_ranger_skeleton_storyboard_v01.png` | 骨骼版六阶段故事板 | 1280×720 | QA |
 | `art/candidates/emerald_ranger_skeleton_readability_100px_v01.png` | 骨骼版实际游戏尺寸辨识度检查 | 960×160 | QA |

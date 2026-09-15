@@ -1,16 +1,21 @@
 class_name Archer
 extends Node2D
 
-const PLAYER_TEXTURE := preload("res://assets/art/characters/emerald_ranger_ingame_100px_right_v01.png")
 const CPU_TEXTURE := preload("res://assets/art/characters/shipwreck_shark_ingame_100px_left_v01.png")
+const EmeraldRangerRigScript := preload("res://scripts/emerald_ranger_rig.gd")
 
 var display_name := "Archer"
 var side := 0
 var health := 100
 var max_health := 100
-var aim_angle := 45.0
+var aim_angle := 45.0:
+	set(value):
+		aim_angle = value
+		if is_instance_valid(rig_visual):
+			rig_visual.set_aim_degrees(value)
 var body_color := Color("#52a7ff")
 var art_sprite: Sprite2D
+var rig_visual: EmeraldRangerRig
 
 func setup(which_side: int, label_text: String, color: Color, hp: int) -> void:
 	side = which_side
@@ -23,9 +28,16 @@ func setup(which_side: int, label_text: String, color: Color, hp: int) -> void:
 
 func _build_art_sprite() -> void:
 	if is_instance_valid(art_sprite): art_sprite.queue_free()
+	if is_instance_valid(rig_visual): rig_visual.queue_free()
+	if side == 0:
+		rig_visual = EmeraldRangerRigScript.new()
+		rig_visual.name = "AnimatedCharacterRig"
+		add_child(rig_visual)
+		rig_visual.set_aim_degrees(aim_angle)
+		return
 	art_sprite = Sprite2D.new()
 	art_sprite.name = "CharacterArt"
-	art_sprite.texture = PLAYER_TEXTURE if side == 0 else CPU_TEXTURE
+	art_sprite.texture = CPU_TEXTURE
 	art_sprite.centered = false
 	art_sprite.position = Vector2(-80.0, -116.0)
 	art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -43,7 +55,21 @@ func launch_direction() -> Vector2:
 
 func apply_damage(amount: int) -> void:
 	health = maxi(0, health - amount)
+	if is_instance_valid(rig_visual):
+		rig_visual.play_hit()
 	queue_redraw()
+
+func set_visual_state(state: StringName) -> void:
+	if is_instance_valid(rig_visual):
+		rig_visual.set_combat_state(state)
+
+func set_charge_visual(value: float) -> void:
+	if is_instance_valid(rig_visual):
+		rig_visual.set_charge(value)
+
+func play_release_visual() -> void:
+	if is_instance_valid(rig_visual):
+		rig_visual.play_release()
 
 func segment_hit(a: Vector2, b: Vector2) -> Dictionary:
 	var la := a - global_position

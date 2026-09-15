@@ -46,11 +46,11 @@
 - 预览用程序绘制弓弦；正式角色也建议用 `Line2D` 或等价线条节点连接弓梢和拉弦手，这样蓄力时不需要额外弦贴图。
 - 视觉根节点缩放到约 100 像素高后挂在现有角色节点下；头、躯干、腿的视觉分组继续对齐现有三段命中区，不从图片透明轮廓生成碰撞。
 
-### Skeleton2D 改进候选
+### Skeleton2D 正式接入
 
-- 新候选位于 `animation_previews/emerald_ranger_skeleton/`，使用真正的 `Skeleton2D/Bone2D` 层级，不再直接旋转互相独立的部件节点。
+- Demo 3 的正式运行时位于 `scripts/emerald_ranger_rig.gd`，使用真正的 `Skeleton2D/Bone2D` 层级；`animation_previews/emerald_ranger_skeleton/` 保留为隔离预览与制作参考。
 - 四肢使用双骨IK：持弓手追踪瞄准目标，拉弦手追踪蓄力目标，双脚追踪地表接触目标。
-- 正式绑定结构和约束见 `art/characters/emerald_ranger/EMERALD_RANGER_SKELETON_SPEC.md`；确认前不替换旧预览或正式角色引用。
+- 正式绑定结构和约束见 `art/characters/emerald_ranger/EMERALD_RANGER_SKELETON_SPEC.md`；翡翠游侠已替换静态正式角色引用，鲨客等待对应拆件。
 
 ## 道具
 

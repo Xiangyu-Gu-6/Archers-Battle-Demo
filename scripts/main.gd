@@ -343,6 +343,8 @@ func _begin_turn() -> void:
 	aim_down_held = false
 	aim_hold_elapsed = 0.0
 	phase = Phase.SELECT
+	for actor in archers:
+		actor.set_visual_state(&"idle")
 	hit_label.text = ""
 	_focus_actor(current_side)
 	status_label.text = "CHOOSE AN ACTION" if current_side == 0 else "CPU IS SCOUTING..."
@@ -353,6 +355,7 @@ func _begin_turn() -> void:
 func _choose_move() -> void:
 	if phase != Phase.SELECT or current_side != 0: return
 	phase = Phase.MOVE
+	archers[0].set_visual_state(&"move")
 	move_committed = false
 	move_start_position = archers[0].global_position
 	move_reachable_interval = terrain.reachable_interval(archers[0].position.x, move_remaining, 0)
@@ -363,6 +366,7 @@ func _choose_move() -> void:
 func _choose_shoot() -> void:
 	if phase != Phase.SELECT or current_side != 0: return
 	phase = Phase.AIM
+	archers[0].set_visual_state(&"aim")
 	shot_committed = false
 	var preview_power := float(last_player_shot.get("power", 0.5))
 	status_label.text = "PREVIEW %d%% · HOLD SPACE TO CHARGE" % roundi(preview_power * 100.0)
@@ -381,6 +385,7 @@ func _cancel_action() -> void:
 		phase = Phase.SELECT
 	else:
 		return
+	archers[0].set_visual_state(&"idle")
 	trajectory = PackedVector2Array()
 	queue_redraw()
 	status_label.text = "CHOOSE AN ACTION"
@@ -433,6 +438,7 @@ func _physics_process(delta: float) -> void:
 		if phase == Phase.CHARGE:
 			charge_elapsed += delta
 			charge_power = _triangle_power(charge_elapsed)
+			archers[0].set_charge_visual(charge_power)
 			preview_update_elapsed += delta
 			if preview_update_elapsed >= 1.0 / 30.0:
 				preview_update_elapsed = 0.0
@@ -465,6 +471,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			charging = true
 			shot_committed = true
 			charge_elapsed = 0.0
+			archers[0].set_charge_visual(0.0)
 			preview_update_elapsed = 0.0
 			_focus_actor(0)
 			status_label.text = "ACTION LOCKED: CHARGING"
@@ -489,6 +496,7 @@ func _notification(what: int) -> void:
 		charge_elapsed = 0.0
 		charge_power = 0.0
 		phase = Phase.AIM
+		archers[0].set_visual_state(&"aim")
 		aim_up_held = false
 		aim_down_held = false
 		dragging = false
@@ -506,6 +514,7 @@ func _move_actor(actor, direction: float, delta: float) -> void:
 	var previous_x: float = actor.position.x
 	var next_x: float = terrain.advance_along_surface(previous_x, signf(direction), requested_distance, zone)
 	var actual: float = terrain.surface_distance(previous_x, next_x)
+	actor.set_visual_state(&"move" if actual > 0.05 else &"idle")
 	actor.position.x = next_x
 	actor.position.y = terrain.surface_y(next_x)
 	move_remaining = maxf(0.0, move_remaining - actual)
@@ -534,6 +543,7 @@ func _fire_arrow(side: int, power: float) -> void:
 	queue_redraw()
 	var shooter = archers[side]
 	var target = archers[1 - side]
+	shooter.play_release_visual()
 	if side == 0:
 		var shot_trace: Dictionary = BallisticsScript.trace(
 			shooter.muzzle_position(),
@@ -600,6 +610,7 @@ func _on_arrow_stopped(result: Dictionary, token: int) -> void:
 
 func _finish_action() -> void:
 	if phase == Phase.GAME_OVER: return
+	archers[current_side].set_visual_state(&"idle")
 	current_side = 1 - current_side
 	_begin_turn()
 
@@ -625,6 +636,7 @@ func _ai_turn(token: int) -> void:
 		await _ai_move(token)
 		return
 	archers[1].aim_angle = clampf(solution.angle + rng.randf_range(-2.0, 2.0), balance.min_angle, balance.max_angle)
+	archers[1].set_visual_state(&"aim")
 	archers[1].queue_redraw()
 	phase = Phase.AIM
 	status_label.text = "CPU IS AIMING..."
@@ -633,6 +645,7 @@ func _ai_turn(token: int) -> void:
 	await get_tree().create_timer(0.55).timeout
 	if token != turn_token: return
 	phase = Phase.CHARGE
+	archers[1].set_charge_visual(0.0)
 	var target_power: float = clampf(solution.power + rng.randf_range(-0.03, 0.03), 0.0, 1.0)
 	var elapsed := 0.0
 	while elapsed < target_power * balance.charge_half_cycle:
@@ -640,6 +653,7 @@ func _ai_turn(token: int) -> void:
 		if token != turn_token: return
 		elapsed += get_physics_process_delta_time()
 		charge_power = _triangle_power(elapsed)
+		archers[1].set_charge_visual(charge_power)
 		_update_trajectory(charge_power)
 		_update_ui()
 	_fire_arrow(1, charge_power)

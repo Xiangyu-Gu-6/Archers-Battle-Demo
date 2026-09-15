@@ -22,6 +22,13 @@ var move_remaining := 0.0
 var charge_elapsed := 0.0
 var charge_power := 0.0
 var charging := false
+var move_committed := false
+var shot_committed := false
+var move_start_position := Vector2.ZERO
+var aim_up_held := false
+var aim_down_held := false
+var aim_hold_elapsed := 0.0
+var preview_update_elapsed := 0.0
 var active_arrow
 var rng := RandomNumberGenerator.new()
 var current_seed := 0
@@ -47,6 +54,7 @@ var move_button: Button
 var shoot_button: Button
 var end_move_button: Button
 var return_button: Button
+var cancel_button: Button
 var skip_button: Button
 var result_panel: PanelContainer
 var result_label: Label
@@ -54,6 +62,7 @@ var again_button: Button
 var hit_label: Label
 var seed_label: Label
 var last_shot_label: Label
+var power_direction_label: Label
 
 func _ready() -> void:
 	rng.randomize()
@@ -134,14 +143,16 @@ func _build_ui() -> void:
 	move_button = Button.new(); move_button.text = "移动"
 	shoot_button = Button.new(); shoot_button.text = "射击"
 	end_move_button = Button.new(); end_move_button.text = "结束移动"
+	cancel_button = Button.new(); cancel_button.text = "返回选择"
 	return_button = Button.new(); return_button.text = "回到角色"
-	for button in [move_button, shoot_button, end_move_button, return_button]:
-		button.custom_minimum_size = Vector2(118, 62)
+	for button in [move_button, shoot_button, end_move_button, cancel_button, return_button]:
+		button.custom_minimum_size = Vector2(102, 62)
 		button.focus_mode = Control.FOCUS_NONE
 		bottom_row.add_child(button)
 	move_button.pressed.connect(_choose_move)
 	shoot_button.pressed.connect(_choose_shoot)
 	end_move_button.pressed.connect(_end_move)
+	cancel_button.pressed.connect(_cancel_action)
 	return_button.pressed.connect(_return_to_actor)
 	var meter_box := VBoxContainer.new()
 	meter_box.custom_minimum_size = Vector2(310, 0)
@@ -150,13 +161,16 @@ func _build_ui() -> void:
 	power_bar.max_value = 100
 	power_bar.custom_minimum_size = Vector2(300, 28)
 	power_bar.show_percentage = true
+	power_direction_label = _make_label("刻度 25 · 50 · 75", 13)
+	power_direction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	meter_box.add_child(angle_label)
 	meter_box.add_child(power_bar)
+	meter_box.add_child(power_direction_label)
 	bottom_row.add_child(meter_box)
 	var info_box := VBoxContainer.new()
 	info_box.custom_minimum_size = Vector2(240, 0)
 	move_label = _make_label("移动额度：80", 16)
-	var help := _make_label("A/D 移动 · W/S 调角\n按住空格蓄力，松开发射", 14)
+	var help := _make_label("A/D 移动 · W/S 调角 · Shift 精调\n按住空格蓄力，松开发射", 14)
 	help.add_theme_color_override("font_color", Color("#c4cbd6"))
 	info_box.add_child(move_label)
 	info_box.add_child(help)
@@ -206,6 +220,12 @@ func new_match(use_same_seed := false) -> void:
 	match_id += 1
 	phase = Phase.GENERATING
 	charging = false
+	move_committed = false
+	shot_committed = false
+	aim_up_held = false
+	aim_down_held = false
+	aim_hold_elapsed = 0.0
+	preview_update_elapsed = 0.0
 	dragging = false
 	intro_skipped = false
 	Input.action_release("move_left")
@@ -216,6 +236,7 @@ func new_match(use_same_seed := false) -> void:
 	trajectory = PackedVector2Array()
 	pending_player_shot.clear()
 	last_player_shot.clear()
+	last_shot_label.text = "上一箭：尚无记录"
 	queue_redraw()
 	hit_label.text = ""
 	result_panel.visible = false
@@ -289,6 +310,11 @@ func _begin_turn() -> void:
 	charge_elapsed = 0.0
 	charge_power = 0.0
 	move_remaining = balance.move_budget
+	move_committed = false
+	shot_committed = false
+	aim_up_held = false
+	aim_down_held = false
+	aim_hold_elapsed = 0.0
 	phase = Phase.SELECT
 	hit_label.text = ""
 	_focus_actor(current_side)
@@ -299,12 +325,15 @@ func _begin_turn() -> void:
 func _choose_move() -> void:
 	if phase != Phase.SELECT or current_side != 0: return
 	phase = Phase.MOVE
-	status_label.text = "移动会消耗本回合射击机会"
+	move_committed = false
+	move_start_position = archers[0].global_position
+	status_label.text = "移动预选：尚未位移，可返回选择"
 	_update_ui()
 
 func _choose_shoot() -> void:
 	if phase != Phase.SELECT or current_side != 0: return
 	phase = Phase.AIM
+	shot_committed = false
 	var preview_power := float(last_player_shot.get("power", 0.5))
 	status_label.text = "预览力度 %d%%，按住空格开始实际蓄力" % roundi(preview_power * 100.0)
 	_update_trajectory(preview_power)
@@ -313,6 +342,19 @@ func _choose_shoot() -> void:
 func _end_move() -> void:
 	if phase != Phase.MOVE or current_side != 0: return
 	_finish_action()
+
+func _cancel_action() -> void:
+	if current_side != 0: return
+	if phase == Phase.MOVE and not move_committed:
+		phase = Phase.SELECT
+	elif phase == Phase.AIM and not shot_committed:
+		phase = Phase.SELECT
+	else:
+		return
+	trajectory = PackedVector2Array()
+	queue_redraw()
+	status_label.text = "请选择行动"
+	_update_ui()
 
 func _return_to_actor() -> void:
 	if phase in [Phase.SELECT, Phase.MOVE, Phase.AIM, Phase.CHARGE]: _focus_actor(current_side)
@@ -327,14 +369,23 @@ func _physics_process(delta: float) -> void:
 			_move_actor(archers[0], axis, delta)
 	if phase in [Phase.AIM, Phase.CHARGE] and current_side == 0:
 		if phase == Phase.AIM:
-			var aim_axis := Input.get_axis("aim_down", "aim_up")
+			var aim_axis := float(int(aim_up_held) - int(aim_down_held))
 			if absf(aim_axis) > 0.01:
-				archers[0].aim_angle = clampf(archers[0].aim_angle + aim_axis * balance.angle_speed * delta, balance.min_angle, balance.max_angle)
-				archers[0].queue_redraw()
+				aim_hold_elapsed += delta
+				if aim_hold_elapsed >= balance.angle_hold_delay:
+					var hold_speed: float = balance.fine_angle_hold_speed if Input.is_key_pressed(KEY_SHIFT) else balance.angle_hold_speed
+					archers[0].aim_angle = clampf(archers[0].aim_angle + aim_axis * hold_speed * delta, balance.min_angle, balance.max_angle)
+					archers[0].queue_redraw()
+					_update_trajectory(float(last_player_shot.get("power", 0.5)))
+			else:
+				aim_hold_elapsed = 0.0
 		if phase == Phase.CHARGE:
 			charge_elapsed += delta
 			charge_power = _triangle_power(charge_elapsed)
-		_update_trajectory(charge_power)
+			preview_update_elapsed += delta
+			if preview_update_elapsed >= 1.0 / 30.0:
+				preview_update_elapsed = 0.0
+				_update_trajectory(charge_power)
 		_update_ui()
 	if phase == Phase.ARROW and is_instance_valid(active_arrow):
 		camera_goal = active_arrow.global_position
@@ -342,10 +393,27 @@ func _physics_process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and current_side == 0:
+		if event.is_action("aim_up") or event.is_action("aim_down"):
+			var is_up := event.is_action("aim_up")
+			if event.pressed and not event.echo and phase == Phase.AIM:
+				if is_up: aim_up_held = true
+				else: aim_down_held = true
+				aim_hold_elapsed = 0.0
+				var tap: float = balance.fine_angle_tap_step if event.shift_pressed else balance.angle_tap_step
+				archers[0].aim_angle = clampf(archers[0].aim_angle + (tap if is_up else -tap), balance.min_angle, balance.max_angle)
+				archers[0].queue_redraw()
+				_update_trajectory(float(last_player_shot.get("power", 0.5)))
+			elif not event.pressed:
+				if is_up: aim_up_held = false
+				else: aim_down_held = false
 		if event.is_action_pressed("charge") and phase == Phase.AIM and not event.echo:
 			phase = Phase.CHARGE
 			charging = true
+			shot_committed = true
 			charge_elapsed = 0.0
+			preview_update_elapsed = 0.0
+			_focus_actor(0)
+			status_label.text = "行动已提交：蓄力中"
 		elif event.is_action_released("charge") and phase == Phase.CHARGE and charging:
 			charging = false
 			_fire_arrow(current_side, charge_power)
@@ -374,6 +442,9 @@ func _move_actor(actor, direction: float, delta: float) -> void:
 	actor.position.x = next_x
 	actor.position.y = terrain.surface_y(next_x)
 	move_remaining = maxf(0.0, move_remaining - actual)
+	if actual > 0.05 and not move_committed:
+		move_committed = true
+		status_label.text = "行动已提交：移动中"
 	_focus_actor(actor.side)
 	if move_remaining <= 0.01: _finish_action()
 
@@ -584,6 +655,8 @@ func _update_ui() -> void:
 	ai_hp_text.text = "电脑 %d / %d" % [archers[1].health, archers[1].max_health]
 	angle_label.text = "角度 %.1f°" % archers[current_side].aim_angle
 	power_bar.value = charge_power * 100.0
+	var descending: bool = fmod(charge_elapsed, balance.charge_half_cycle * 2.0) > balance.charge_half_cycle
+	power_direction_label.text = "刻度 25 · 50 · 75    %s" % ("↓" if descending and phase == Phase.CHARGE else "↑" if phase == Phase.CHARGE else "")
 	move_label.text = "移动额度：%d / %d" % [roundi(move_remaining), roundi(balance.move_budget)]
 	if phase not in [Phase.INTRO, Phase.GAME_OVER]:
 		turn_label.text = "%s行动" % archers[current_side].display_name
@@ -591,5 +664,6 @@ func _update_ui() -> void:
 	move_button.disabled = not player_can_choose
 	shoot_button.disabled = not player_can_choose
 	end_move_button.visible = current_side == 0 and phase == Phase.MOVE
+	cancel_button.visible = current_side == 0 and ((phase == Phase.MOVE and not move_committed) or (phase == Phase.AIM and not shot_committed))
 	return_button.disabled = current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM, Phase.CHARGE]
 

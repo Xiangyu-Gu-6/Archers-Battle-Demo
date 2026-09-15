@@ -6,6 +6,7 @@ const TerrainScript := preload("res://scripts/terrain.gd")
 const ArcherScript := preload("res://scripts/archer.gd")
 const ArrowScript := preload("res://scripts/arrow.gd")
 const BalanceScript := preload("res://scripts/game_balance.gd")
+const BallisticsScript := preload("res://scripts/ballistics.gd")
 
 var balance = BalanceScript.new()
 var match_root: Node2D
@@ -30,6 +31,8 @@ var zoom_goal := Vector2.ONE
 var dragging := false
 var last_mouse := Vector2.ZERO
 var trajectory := PackedVector2Array()
+var pending_player_shot := {}
+var last_player_shot := {}
 var ui: CanvasLayer
 var turn_label: Label
 var status_label: Label
@@ -50,6 +53,7 @@ var result_label: Label
 var again_button: Button
 var hit_label: Label
 var seed_label: Label
+var last_shot_label: Label
 
 func _ready() -> void:
 	rng.randomize()
@@ -169,6 +173,12 @@ func _build_ui() -> void:
 	seed_label.position = Vector2(22, 112)
 	seed_label.add_theme_color_override("font_color", Color("#9ba6b7"))
 	root.add_child(seed_label)
+	last_shot_label = _make_label("上一箭：尚无记录", 14)
+	last_shot_label.position = Vector2(905, 118)
+	last_shot_label.size = Vector2(350, 72)
+	last_shot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	last_shot_label.add_theme_color_override("font_color", Color("#b9c5d8"))
+	root.add_child(last_shot_label)
 	hit_label = _make_label("", 28)
 	hit_label.position = Vector2(460, 126)
 	hit_label.size = Vector2(360, 54)
@@ -204,6 +214,8 @@ func new_match(use_same_seed := false) -> void:
 	Input.action_release("aim_down")
 	Input.action_release("charge")
 	trajectory = PackedVector2Array()
+	pending_player_shot.clear()
+	last_player_shot.clear()
 	queue_redraw()
 	hit_label.text = ""
 	result_panel.visible = false
@@ -293,8 +305,9 @@ func _choose_move() -> void:
 func _choose_shoot() -> void:
 	if phase != Phase.SELECT or current_side != 0: return
 	phase = Phase.AIM
-	status_label.text = "W/S 调整角度；按住空格蓄力"
-	_update_trajectory(0.0)
+	var preview_power := float(last_player_shot.get("power", 0.5))
+	status_label.text = "预览力度 %d%%，按住空格开始实际蓄力" % roundi(preview_power * 100.0)
+	_update_trajectory(preview_power)
 	_update_ui()
 
 func _end_move() -> void:
@@ -379,6 +392,13 @@ func _fire_arrow(side: int, power: float) -> void:
 	queue_redraw()
 	var shooter = archers[side]
 	var target = archers[1 - side]
+	if side == 0:
+		pending_player_shot = {
+			"angle": shooter.aim_angle,
+			"power": power,
+			"shooter_position": shooter.global_position,
+			"target_position": target.global_position
+		}
 	active_arrow = ArrowScript.new()
 	match_root.add_child(active_arrow)
 	active_arrow.launch(shooter.muzzle_position(), shooter.launch_direction() * balance.launch_speed(power), shooter, target, terrain, balance.gravity, balance.arrow_timeout)
@@ -390,7 +410,7 @@ func _on_arrow_stopped(result: Dictionary, token: int) -> void:
 	if token != turn_token or phase != Phase.ARROW: return
 	phase = Phase.RESOLVE
 	if is_instance_valid(active_arrow):
-		if result.kind == &"miss":
+		if result.kind in [&"out_of_bounds", &"timeout"]:
 			active_arrow.queue_free()
 		else:
 			landed_arrows.append(active_arrow)
@@ -405,7 +425,18 @@ func _on_arrow_stopped(result: Dictionary, token: int) -> void:
 		hit_label.text = "%s −%d" % [part_name, damage]
 		status_label.text = "%s命中%s！" % [archers[current_side].display_name, target.display_name]
 	else:
-		hit_label.text = "未命中" if result.kind == &"miss" else "命中地形"
+		match result.kind:
+			&"terrain": hit_label.text = "命中地形"
+			&"timeout": hit_label.text = "飞行超时"
+			_: hit_label.text = "飞出边界"
+	if current_side == 0:
+		last_player_shot = pending_player_shot.duplicate()
+		last_player_shot["kind"] = result.kind
+		last_player_shot["point"] = result.point
+		if result.has("part"): last_player_shot["part"] = result.part
+		pending_player_shot.clear()
+		_update_last_shot_ui()
+		queue_redraw()
 	_update_ui()
 	await get_tree().create_timer(0.6).timeout
 	if token != turn_token: return
@@ -483,20 +514,9 @@ func _find_ai_shot(token: int) -> Dictionary:
 func _simulate_shot(shooter, target, angle: float, power: float) -> Dictionary:
 	var sign_dir: float = shooter.facing_sign()
 	var dir := Vector2(cos(deg_to_rad(angle)) * sign_dir, -sin(deg_to_rad(angle)))
-	var pos: Vector2 = shooter.global_position + Vector2(0.0, -58.0) + dir * 34.0
-	var vel: Vector2 = dir * balance.launch_speed(power)
-	var closest := INF
-	var dt := 1.0 / 60.0
-	for step in 360:
-		var next := pos + vel * dt + Vector2(0.0, balance.gravity) * 0.5 * dt * dt
-		var ground_hit: Dictionary = terrain.segment_hit(pos, next)
-		var actor_hit: Dictionary = target.segment_hit(pos, next)
-		if actor_hit.hit and (not ground_hit.hit or actor_hit.t < ground_hit.t): return {"hit_actor": true, "score": 0.0}
-		closest = minf(closest, next.distance_to(target.global_position + Vector2(0, -50)))
-		if ground_hit.hit or next.x < -100 or next.x > balance.world_width + 100 or next.y > balance.world_bottom + 100: break
-		pos = next
-		vel.y += balance.gravity * dt
-	return {"hit_actor": false, "score": closest}
+	var origin: Vector2 = shooter.global_position + Vector2(0.0, -58.0) + dir * 34.0
+	var traced: Dictionary = BallisticsScript.trace(origin, dir * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target)
+	return {"hit_actor": traced.result.kind == &"actor", "score": traced.closest}
 
 func _ai_move(token: int) -> void:
 	phase = Phase.MOVE
@@ -517,30 +537,38 @@ func _ai_move(token: int) -> void:
 	if token == turn_token: _finish_action()
 
 func _update_trajectory(power: float) -> void:
-	trajectory = PackedVector2Array()
 	var shooter = archers[current_side]
-	var pos: Vector2 = shooter.muzzle_position()
-	var vel: Vector2 = shooter.launch_direction() * balance.launch_speed(power)
-	trajectory.append(pos)
-	var traveled := 0.0
-	var dt := 1.0 / 60.0
-	for step in 12:
-		var next := pos + vel * dt + Vector2(0.0, balance.gravity) * 0.5 * dt * dt
-		var hit: Dictionary = terrain.segment_hit(pos, next)
-		if hit.hit:
-			trajectory.append(hit.point)
-			break
-		traveled += pos.distance_to(next)
-		if traveled > 180.0: break
-		trajectory.append(next)
-		pos = next
-		vel.y += balance.gravity * dt
+	var target = archers[1 - current_side]
+	var traced: Dictionary = BallisticsScript.trace(shooter.muzzle_position(), shooter.launch_direction() * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target)
+	trajectory = BallisticsScript.first_fraction_by_arc(traced.points, 0.5)
 	queue_redraw()
 
 func _draw() -> void:
 	if trajectory.size() > 1:
 		for i in range(trajectory.size() - 1):
-			draw_line(trajectory[i], trajectory[i + 1], Color("#ffd667aa"), 3.0 if i % 2 == 0 else 1.0)
+			var progress := float(i) / maxf(1.0, trajectory.size() - 2.0)
+			var alpha := 0.72
+			if progress > 0.8: alpha *= (1.0 - progress) / 0.2
+			draw_line(trajectory[i], trajectory[i + 1], Color(1.0, 0.84, 0.40, alpha), 3.0)
+	if not last_player_shot.is_empty() and last_player_shot.kind in [&"terrain", &"actor"]:
+		var marker: Vector2 = last_player_shot.point
+		var marker_color := Color("#b8c4d255")
+		draw_circle(marker, 10.0, marker_color, false, 2.0)
+		draw_line(marker + Vector2(-7, -7), marker + Vector2(7, 7), marker_color, 2.0)
+		draw_line(marker + Vector2(-7, 7), marker + Vector2(7, -7), marker_color, 2.0)
+
+func _update_last_shot_ui() -> void:
+	if last_player_shot.is_empty():
+		last_shot_label.text = "上一箭：尚无记录"
+		return
+	var outcome := ""
+	match last_player_shot.kind:
+		&"actor": outcome = {&"head": "命中头部", &"torso": "命中躯干", &"legs": "命中腿脚"}.get(last_player_shot.get("part", &""), "命中")
+		&"terrain": outcome = "撞地"
+		&"timeout": outcome = "超时"
+		_: outcome = "出界"
+	var changed: bool = archers.size() == 2 and (archers[0].global_position.distance_to(last_player_shot.shooter_position) > 0.5 or archers[1].global_position.distance_to(last_player_shot.target_position) > 0.5)
+	last_shot_label.text = "上一箭：%.1f° · %d%% · %s%s" % [last_player_shot.angle, roundi(last_player_shot.power * 100.0), outcome, "\n站位已变化，参考为上次射击" if changed else ""]
 
 func _focus_actor(side: int) -> void:
 	camera_goal = archers[side].global_position + Vector2(0.0, -130.0)

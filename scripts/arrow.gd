@@ -1,6 +1,8 @@
 class_name FlyingArrow
 extends Node2D
 
+const BallisticsScript := preload("res://scripts/ballistics.gd")
+
 signal stopped(result: Dictionary)
 var velocity := Vector2.ZERO
 var gravity := 700.0
@@ -26,24 +28,18 @@ func launch(origin: Vector2, initial_velocity: Vector2, owner_archer, target_arc
 
 func _physics_process(delta: float) -> void:
 	if not active: return
-	var previous := global_position
-	var next := previous + velocity * delta + Vector2(0.0, gravity) * 0.5 * delta * delta
-	var terrain_hit: Dictionary = terrain.segment_hit(previous, next)
-	var actor_hit: Dictionary = target.segment_hit(previous, next)
-	var chosen := {"hit": false}
-	if terrain_hit.hit: chosen = {"hit": true, "kind": &"terrain", "t": terrain_hit.t, "point": terrain_hit.point}
-	if actor_hit.hit and (not chosen.hit or actor_hit.t < chosen.t):
-		chosen = {"hit": true, "kind": &"actor", "part": actor_hit.part, "t": actor_hit.t, "point": actor_hit.point}
-	if chosen.hit:
-		global_position = chosen.point
-		_finish(chosen)
+	var frame: Dictionary = BallisticsScript.advance(global_position, velocity, delta, gravity, terrain, target)
+	global_position = frame.position
+	velocity = frame.velocity
+	if frame.collision.hit:
+		_finish(frame.collision)
 		return
-	global_position = next
-	velocity.y += gravity * delta
 	rotation = velocity.angle()
 	age += delta
-	if age >= timeout or global_position.x < -120.0 or global_position.x > world_width + 120.0 or global_position.y > terrain.world_bottom + 180.0:
-		_finish({"hit": false, "kind": &"miss", "point": global_position})
+	if age >= timeout:
+		_finish({"hit": false, "kind": &"timeout", "point": global_position})
+	elif global_position.x < -120.0 or global_position.x > world_width + 120.0 or global_position.y > terrain.world_bottom + 180.0:
+		_finish({"hit": false, "kind": &"out_of_bounds", "point": global_position})
 
 func _finish(result: Dictionary) -> void:
 	if not active: return

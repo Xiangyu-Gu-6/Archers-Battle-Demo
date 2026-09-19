@@ -2,10 +2,14 @@ class_name Archer
 extends Node2D
 
 const CPU_TEXTURE := preload("res://assets/art/characters/shipwreck_shark_ingame_100px_left_v01.png")
+const ARCHITECT_LEFT := preload("res://assets/art/characters/architect/architect_ingame_100px_left_v01.png")
+const ARCHITECT_RIGHT := preload("res://assets/art/characters/architect/architect_ingame_100px_right_v01.png")
 const EmeraldRangerRigScript := preload("res://scripts/emerald_ranger_rig.gd")
 
 var display_name := "Archer"
 var side := 0
+var role_id: StringName = &"ranger"
+var skill_uses := 1
 var health := 100
 var max_health := 100
 var aim_angle := 45.0:
@@ -17,8 +21,9 @@ var body_color := Color("#52a7ff")
 var art_sprite: Sprite2D
 var rig_visual: EmeraldRangerRig
 
-func setup(which_side: int, label_text: String, color: Color, hp: int) -> void:
+func setup(which_side: int, label_text: String, color: Color, hp: int, role: StringName = &"") -> void:
 	side = which_side
+	role_id = role if role != &"" else (&"ranger" if side == 0 else &"shark")
 	display_name = label_text
 	body_color = color
 	max_health = hp
@@ -29,17 +34,20 @@ func setup(which_side: int, label_text: String, color: Color, hp: int) -> void:
 func _build_art_sprite() -> void:
 	if is_instance_valid(art_sprite): art_sprite.queue_free()
 	if is_instance_valid(rig_visual): rig_visual.queue_free()
-	if side == 0:
+	if role_id == &"ranger":
 		rig_visual = EmeraldRangerRigScript.new()
 		rig_visual.name = "AnimatedCharacterRig"
 		add_child(rig_visual)
 		rig_visual.set_aim_degrees(aim_angle)
+		if side == 1: rig_visual.scale.x = -1.0
 		return
 	art_sprite = Sprite2D.new()
 	art_sprite.name = "CharacterArt"
-	art_sprite.texture = CPU_TEXTURE
+	art_sprite.texture = (ARCHITECT_RIGHT if side == 0 else ARCHITECT_LEFT) if role_id == &"architect" else CPU_TEXTURE
 	art_sprite.centered = false
 	art_sprite.position = Vector2(-80.0, -116.0)
+	if role_id == &"shark" and side == 0:
+		art_sprite.flip_h = true
 	art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(art_sprite)
 

@@ -80,6 +80,7 @@ func _test_terrain_and_ballistics(balance) -> void:
 func _test_ui_and_match_lifecycle() -> void:
 	var game = MainScene.instantiate()
 	root.add_child(game)
+	game._start_selected_match()
 	while game.rebuilding_match: await process_frame
 	check(is_instance_valid(game.art_backdrop), "art backdrop must be configured")
 	check(is_instance_valid(game.art_backdrop.sky) and is_instance_valid(game.art_backdrop.far_layer) and is_instance_valid(game.art_backdrop.mid_layer), "all three environment layers must exist")

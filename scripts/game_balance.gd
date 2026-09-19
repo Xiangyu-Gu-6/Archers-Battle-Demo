@@ -22,6 +22,13 @@ extends Resource
 @export var head_damage := 50
 @export var torso_damage := 30
 @export var legs_damage := 20
+@export var scatter_angle_degrees := 6.0
+@export var scatter_damage_multiplier := 0.8
+@export var heavy_damage_multiplier := 1.5
+@export var barrier_width := 120.0
+@export var barrier_height := 80.0
+@export var barrier_hit_points := 2
+@export var skill_uses_per_match := 1
 
 func launch_speed(power: float) -> float:
 	return lerpf(min_speed, max_speed, clampf(power, 0.0, 1.0))

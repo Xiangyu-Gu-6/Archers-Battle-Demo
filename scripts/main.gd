@@ -1,6 +1,6 @@
 extends Node2D
 
-enum Phase { GENERATING, INTRO, SELECT, MOVE, AIM, CHARGE, ARROW, RESOLVE, GAME_OVER }
+enum Phase { HERO_SELECT, GENERATING, INTRO, SELECT, MOVE, AIM, CHARGE, BUILD, ARROW, RESOLVE, GAME_OVER }
 
 const TerrainScript := preload("res://scripts/terrain.gd")
 const ArcherScript := preload("res://scripts/archer.gd")
@@ -8,12 +8,27 @@ const ArrowScript := preload("res://scripts/arrow.gd")
 const BalanceScript := preload("res://scripts/game_balance.gd")
 const BallisticsScript := preload("res://scripts/ballistics.gd")
 const ArtBackdropScript := preload("res://scripts/art_backdrop.gd")
+const BarrierScript := preload("res://scripts/architect_barrier.gd")
+const ROLES := {
+	&"ranger": {"name": "翡翠游侠", "skill": "翠羽三连", "detail": "3支散射箭，每支造成普通箭80%伤害。每局1次。", "texture": preload("res://assets/art/characters/emerald_ranger_static_right_v01.png")},
+	&"shark": {"name": "船骸鲨客", "skill": "鲨牙重击", "detail": "1支强化箭，造成普通箭150%伤害。每局1次。", "texture": preload("res://assets/art/characters/shipwreck_shark_static_left_v01.png")},
+	&"architect": {"name": "建筑师", "skill": "搭建壁垒", "detail": "己方区域建造120×80壁垒，挡住2次箭矢。占用一回合，每局1次。", "texture": preload("res://assets/art/characters/architect/architect_static_right_v01.png")}
+}
 
 var balance = BalanceScript.new()
 var match_root: Node2D
 var terrain
 var archers: Array = []
 var landed_arrows: Array = []
+var barriers: Array = []
+var active_arrows: Array = []
+var remaining_arrows := 0
+var shot_results: Array = []
+var active_shot_kind: StringName = &"normal"
+var selected_role: StringName = &"ranger"
+var cpu_role: StringName = &"shark"
+var barrier_preview
+var preview_trails: Array = []
 var match_id := 0
 var rebuilding_match := false
 var current_side := 0
@@ -59,6 +74,8 @@ var player_hp_text: Label
 var ai_hp_text: Label
 var move_button: Button
 var shoot_button: Button
+var skill_button: Button
+var place_button: Button
 var end_move_button: Button
 var return_button: Button
 var cancel_button: Button
@@ -67,6 +84,12 @@ var enemy_button: Button
 var result_panel: PanelContainer
 var result_label: Label
 var again_button: Button
+var change_hero_button: Button
+var hero_panel: PanelContainer
+var hero_buttons: Array[Button] = []
+var hero_detail: Label
+var hero_start_button: Button
+var battle_widgets: Array[Control] = []
 var hit_label: Label
 var seed_label: Label
 var last_shot_label: Label
@@ -77,7 +100,7 @@ func _ready() -> void:
 	rng.randomize()
 	_build_world()
 	_build_ui()
-	new_match()
+	_show_hero_select()
 
 func _build_world() -> void:
 	RenderingServer.set_default_clear_color(Color("#101824"))
@@ -112,6 +135,7 @@ func _build_ui() -> void:
 	top.position = Vector2(20, 16)
 	top.size = Vector2(1240, 92)
 	root.add_child(top)
+	battle_widgets.append(top)
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 18)
 	top.add_child(top_row)
@@ -150,29 +174,36 @@ func _build_ui() -> void:
 	bottom.position = Vector2(20, 596)
 	bottom.size = Vector2(1240, 106)
 	root.add_child(bottom)
+	battle_widgets.append(bottom)
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", 12)
 	bottom.add_child(bottom_row)
-	move_button = Button.new(); move_button.text = "MOVE"
-	shoot_button = Button.new(); shoot_button.text = "SHOOT"
+	move_button = Button.new(); move_button.text = "移动"
+	move_button.theme = load("res://assets/ui/themes/move_action_button_theme_v01.tres")
+	shoot_button = Button.new(); shoot_button.text = "射击"
+	shoot_button.theme = load("res://assets/ui/themes/shoot_action_button_theme_v01.tres")
+	skill_button = Button.new(); skill_button.text = "专属技能"
 	end_move_button = Button.new(); end_move_button.text = "END MOVE"
 	cancel_button = Button.new(); cancel_button.text = "CANCEL"
 	return_button = Button.new(); return_button.text = "MY ARCHER"
-	for button in [move_button, shoot_button, end_move_button, cancel_button, return_button]:
-		button.custom_minimum_size = Vector2(102, 62)
+	place_button = Button.new(); place_button.text = "放置壁垒"
+	for button in [move_button, shoot_button, skill_button, end_move_button, place_button, cancel_button, return_button]:
+		button.custom_minimum_size = Vector2(142, 62) if button in [move_button, shoot_button, skill_button] else Vector2(82, 62)
 		button.focus_mode = Control.FOCUS_NONE
 		bottom_row.add_child(button)
 	move_button.pressed.connect(_choose_move)
 	shoot_button.pressed.connect(_choose_shoot)
+	skill_button.pressed.connect(_choose_skill)
+	place_button.pressed.connect(_place_barrier)
 	end_move_button.pressed.connect(_end_move)
 	cancel_button.pressed.connect(_cancel_action)
 	return_button.pressed.connect(_return_to_actor)
 	var meter_box := VBoxContainer.new()
-	meter_box.custom_minimum_size = Vector2(310, 0)
+	meter_box.custom_minimum_size = Vector2(240, 0)
 	angle_label = _make_label("ANGLE 45°", 17)
 	power_bar = ProgressBar.new()
 	power_bar.max_value = 100
-	power_bar.custom_minimum_size = Vector2(300, 28)
+	power_bar.custom_minimum_size = Vector2(230, 28)
 	power_bar.show_percentage = true
 	power_direction_label = _make_label("MARKS 25 · 50 · 75", 13)
 	power_direction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -181,9 +212,9 @@ func _build_ui() -> void:
 	meter_box.add_child(power_direction_label)
 	bottom_row.add_child(meter_box)
 	var info_box := VBoxContainer.new()
-	info_box.custom_minimum_size = Vector2(240, 0)
+	info_box.custom_minimum_size = Vector2(160, 0)
 	move_label = _make_label("MOVE 180 / 180", 16)
-	var help := _make_label("A/D MOVE · W/S AIM · SHIFT FINE AIM\nHOLD SPACE TO CHARGE, RELEASE TO FIRE", 14)
+	var help := _make_label("A/D 移动 · W/S 瞄准\n空格蓄力 · 点击放置", 13)
 	help.add_theme_color_override("font_color", Color("#c4cbd6"))
 	info_box.add_child(move_label)
 	info_box.add_child(help)
@@ -196,6 +227,7 @@ func _build_ui() -> void:
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.pressed.connect(func(): intro_skipped = true)
 	root.add_child(skip_button)
+	battle_widgets.append(skip_button)
 	enemy_button = Button.new()
 	enemy_button.text = "VIEW ENEMY"
 	enemy_button.position = Vector2(735, 122)
@@ -203,11 +235,13 @@ func _build_ui() -> void:
 	enemy_button.focus_mode = Control.FOCUS_NONE
 	enemy_button.pressed.connect(_view_enemy)
 	root.add_child(enemy_button)
+	battle_widgets.append(enemy_button)
 	seed_label = _make_label("", 13)
 	seed_label.position = Vector2(22, 112)
 	seed_label.add_theme_color_override("font_color", Color("#9ba6b7"))
 	seed_label.visible = OS.is_debug_build()
 	root.add_child(seed_label)
+	battle_widgets.append(seed_label)
 	last_shot_label = _make_label("LAST SHOT: NONE", 14)
 	last_shot_label.position = Vector2(905, 118)
 	last_shot_label.size = Vector2(350, 72)
@@ -216,11 +250,13 @@ func _build_ui() -> void:
 	last_shot_label.add_theme_color_override("font_outline_color", Color("#fff7dfcc"))
 	last_shot_label.add_theme_constant_override("outline_size", 3)
 	root.add_child(last_shot_label)
+	battle_widgets.append(last_shot_label)
 	hit_label = _make_label("", 28)
 	hit_label.position = Vector2(460, 126)
 	hit_label.size = Vector2(360, 54)
 	hit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(hit_label)
+	battle_widgets.append(hit_label)
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(390, 210)
 	result_panel.size = Vector2(500, 260)
@@ -230,14 +266,111 @@ func _build_ui() -> void:
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	again_button = Button.new(); again_button.text = "PLAY AGAIN"; again_button.custom_minimum_size = Vector2(220, 60); again_button.focus_mode = Control.FOCUS_NONE
 	again_button.pressed.connect(new_match)
+	change_hero_button = Button.new(); change_hero_button.text = "更换英雄"; change_hero_button.custom_minimum_size = Vector2(220, 48)
+	change_hero_button.pressed.connect(_show_hero_select)
 	result_box.add_child(result_label)
 	result_box.add_child(again_button)
+	result_box.add_child(change_hero_button)
 	result_panel.add_child(result_box)
 	root.add_child(result_panel)
 	result_panel.visible = false
+	_build_hero_select(root)
+
+func _build_hero_select(root: Control) -> void:
+	hero_panel = PanelContainer.new()
+	hero_panel.position = Vector2(92, 55)
+	hero_panel.size = Vector2(1096, 610)
+	root.add_child(hero_panel)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 14)
+	hero_panel.add_child(layout)
+	var title := _make_label("选择你的弓箭手", 34)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(title)
+	var subtitle := _make_label("三位英雄各有一次专属行动 · 玩家 VS 电脑", 17)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(subtitle)
+	var cards := HBoxContainer.new()
+	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.add_theme_constant_override("separation", 24)
+	layout.add_child(cards)
+	for role in [&"ranger", &"shark", &"architect"]:
+		var card := Button.new()
+		card.custom_minimum_size = Vector2(310, 338)
+		card.icon = ROLES[role].texture
+		card.expand_icon = true
+		card.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		card.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		card.text = ROLES[role].name
+		card.pressed.connect(_select_hero.bind(role))
+		cards.add_child(card)
+		hero_buttons.append(card)
+	hero_detail = _make_label("", 17)
+	hero_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	layout.add_child(hero_detail)
+	var rules := _make_label("生命100 · 普通箭头/躯干/腿伤害50/30/20 · 电脑随机选择另外两位英雄之一", 14)
+	rules.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(rules)
+	hero_start_button = Button.new()
+	hero_start_button.custom_minimum_size = Vector2(280, 56)
+	hero_start_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	hero_start_button.pressed.connect(_start_selected_match)
+	layout.add_child(hero_start_button)
+	_select_hero(selected_role)
+
+func _select_hero(role: StringName) -> void:
+	selected_role = role
+	if not is_instance_valid(hero_panel): return
+	var roles := [&"ranger", &"shark", &"architect"]
+	for i in hero_buttons.size():
+		hero_buttons[i].text = ROLES[roles[i]].name + ("  ✓ 已选择" if roles[i] == role else "  选择")
+		hero_buttons[i].modulate = Color.WHITE if roles[i] == role else Color("#a5afb6")
+	hero_detail.text = "%s · %s\n%s" % [ROLES[role].name, ROLES[role].skill, ROLES[role].detail]
+	hero_start_button.text = "以%s开始对战" % ROLES[role].name
+
+func _apply_skill_button_art(role: StringName) -> void:
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var style := StyleBoxTexture.new()
+		style.texture = load("res://assets/ui/skills/%s_skill_button_%s_v01.png" % [role, state])
+		skill_button.add_theme_stylebox_override(state, style)
+
+func _show_hero_select() -> void:
+	turn_token += 1
+	phase = Phase.HERO_SELECT
+	if is_instance_valid(match_root):
+		match_root.queue_free()
+		match_root = null
+	archers.clear()
+	barriers.clear()
+	active_arrows.clear()
+	landed_arrows.clear()
+	barrier_preview = null
+	trajectory = PackedVector2Array()
+	preview_trails.clear()
+	last_player_shot.clear()
+	pending_player_shot.clear()
+	hero_panel.visible = true
+	result_panel.visible = false
+	for widget in battle_widgets: widget.visible = false
+	_select_hero(selected_role)
+	queue_redraw()
+
+func _start_selected_match() -> void:
+	if phase != Phase.HERO_SELECT or rebuilding_match: return
+	hero_start_button.disabled = true
+	hero_start_button.text = "准备战场…"
+	hero_panel.visible = false
+	for widget in battle_widgets: widget.visible = true
+	new_match()
+	hero_start_button.disabled = false
+	_select_hero(selected_role)
 
 func new_match(use_same_seed := false) -> void:
 	if rebuilding_match: return
+	var other_roles := [&"ranger", &"shark", &"architect"]
+	other_roles.erase(selected_role)
+	cpu_role = other_roles[rng.randi_range(0, other_roles.size() - 1)]
 	rebuilding_match = true
 	turn_token += 1
 	match_id += 1
@@ -258,6 +391,8 @@ func new_match(use_same_seed := false) -> void:
 	Input.action_release("aim_down")
 	Input.action_release("charge")
 	trajectory = PackedVector2Array()
+	preview_trails.clear()
+	active_shot_kind = &"normal"
 	pending_player_shot.clear()
 	last_player_shot.clear()
 	last_shot_label.text = "LAST SHOT: NONE"
@@ -281,12 +416,20 @@ func new_match(use_same_seed := false) -> void:
 	match_root.add_child(terrain)
 	archers.clear()
 	landed_arrows.clear()
+	barriers.clear()
+	active_arrows.clear()
+	remaining_arrows = 0
+	shot_results.clear()
+	barrier_preview = null
 	active_arrow = null
 	for i in 2:
 		var archer = ArcherScript.new()
-		archer.setup(i, "Emerald Ranger" if i == 0 else "Shipwreck Shark", Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health)
+		var role: StringName = selected_role if i == 0 else cpu_role
+		archer.setup(i, ROLES[role].name, Color("#55aaff") if i == 0 else Color("#ff736a"), balance.max_health, role)
+		archer.skill_uses = balance.skill_uses_per_match
 		archers.append(archer)
 		match_root.add_child(archer)
+	_apply_skill_button_art(selected_role)
 	if use_same_seed and current_seed != 0 and OS.is_debug_build():
 		current_seed = old_seed
 	else:
@@ -365,13 +508,65 @@ func _choose_move() -> void:
 
 func _choose_shoot() -> void:
 	if phase != Phase.SELECT or current_side != 0: return
+	active_shot_kind = &"normal"
+	_enter_aim()
+
+func _choose_skill() -> void:
+	if phase != Phase.SELECT or current_side != 0 or archers[0].skill_uses <= 0: return
+	if archers[0].role_id == &"architect":
+		_begin_build(0)
+		return
+	active_shot_kind = &"scatter" if archers[0].role_id == &"ranger" else &"heavy"
+	_enter_aim()
+
+func _enter_aim() -> void:
 	phase = Phase.AIM
-	archers[0].set_visual_state(&"aim")
+	archers[current_side].set_visual_state(&"aim")
 	shot_committed = false
 	var preview_power := float(last_player_shot.get("power", 0.5))
-	status_label.text = "PREVIEW %d%% · HOLD SPACE TO CHARGE" % roundi(preview_power * 100.0)
+	status_label.text = "%s · 预览 %d%% · 按住空格蓄力" % [active_shot_kind, roundi(preview_power * 100.0)]
 	_update_trajectory(preview_power)
 	_update_ui()
+
+func _begin_build(side: int) -> void:
+	phase = Phase.BUILD
+	barrier_preview = BarrierScript.new()
+	match_root.add_child(barrier_preview)
+	barrier_preview.setup(Vector2(balance.barrier_width, balance.barrier_height), balance.barrier_hit_points, true)
+	var actor = archers[side]
+	var offset: float = 170.0 * actor.facing_sign()
+	_update_barrier_preview(actor.position.x + offset)
+	status_label.text = "移动鼠标选位置，点击或按放置壁垒 · 每局一次"
+	_update_ui()
+
+func _update_barrier_preview(x: float) -> void:
+	if not is_instance_valid(barrier_preview): return
+	barrier_preview.position = Vector2(x, terrain.surface_y(x))
+	barrier_preview.set_placement_valid(_barrier_placement_valid(current_side, x))
+	if current_side == 0 and is_instance_valid(place_button): place_button.disabled = not barrier_preview.valid_placement
+
+func _barrier_placement_valid(side: int, x: float) -> bool:
+	var zone: Vector2 = terrain.left_zone if side == 0 else terrain.right_zone
+	if x - balance.barrier_width * 0.5 < zone.x or x + balance.barrier_width * 0.5 > zone.y: return false
+	for actor in archers:
+		if absf(actor.position.x - x) < balance.barrier_width * 0.5 + 30.0: return false
+	for barrier in barriers:
+		if is_instance_valid(barrier) and barrier.hit_points > 0 and absf(barrier.position.x - x) < balance.barrier_width: return false
+	return true
+
+func _place_barrier() -> void:
+	if phase != Phase.BUILD or not is_instance_valid(barrier_preview): return
+	if not barrier_preview.valid_placement: return
+	var placed = BarrierScript.new()
+	match_root.add_child(placed)
+	placed.position = barrier_preview.position
+	placed.setup(Vector2(balance.barrier_width, balance.barrier_height), balance.barrier_hit_points)
+	barriers.append(placed)
+	barrier_preview.queue_free()
+	barrier_preview = null
+	archers[current_side].skill_uses -= 1
+	status_label.text = "%s 搭建了壁垒" % archers[current_side].display_name
+	_finish_action()
 
 func _end_move() -> void:
 	if phase != Phase.MOVE or current_side != 0: return
@@ -382,11 +577,17 @@ func _cancel_action() -> void:
 	if phase == Phase.MOVE and not move_committed:
 		phase = Phase.SELECT
 	elif phase == Phase.AIM and not shot_committed:
+		active_shot_kind = &"normal"
+		phase = Phase.SELECT
+	elif phase == Phase.BUILD:
+		if is_instance_valid(barrier_preview): barrier_preview.queue_free()
+		barrier_preview = null
 		phase = Phase.SELECT
 	else:
 		return
 	archers[0].set_visual_state(&"idle")
 	trajectory = PackedVector2Array()
+	preview_trails.clear()
 	queue_redraw()
 	status_label.text = "CHOOSE AN ACTION"
 	_update_ui()
@@ -448,7 +649,20 @@ func _physics_process(delta: float) -> void:
 		camera_goal = active_arrow.global_position
 		zoom_goal = Vector2(0.88, 0.88)
 
+func _input(event: InputEvent) -> void:
+	if phase != Phase.HERO_SELECT or not (event is InputEventKey) or not event.pressed or event.echo: return
+	var roles := [&"ranger", &"shark", &"architect"]
+	var index := roles.find(selected_role)
+	if event.keycode == KEY_LEFT:
+		_select_hero(roles[posmod(index - 1, roles.size())])
+		get_viewport().set_input_as_handled()
+	elif event.keycode == KEY_RIGHT:
+		_select_hero(roles[posmod(index + 1, roles.size())])
+		get_viewport().set_input_as_handled()
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and phase == Phase.BUILD and current_side == 0 and event.position.y < 590.0:
+		_update_barrier_preview(get_global_mouse_position().x)
 	if event is InputEventKey and current_side == 0:
 		if event.keycode == KEY_TAB and not event.echo:
 			if event.pressed: _begin_full_view()
@@ -478,6 +692,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_released("charge") and phase == Phase.CHARGE and charging:
 			charging = false
 			_fire_arrow(current_side, charge_power)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and phase == Phase.BUILD and current_side == 0:
+		_place_barrier()
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and phase in [Phase.SELECT, Phase.MOVE, Phase.AIM]:
 		dragging = event.pressed
 		last_mouse = event.position
@@ -540,63 +757,93 @@ func _fire_arrow(side: int, power: float) -> void:
 	if phase not in [Phase.AIM, Phase.CHARGE, Phase.SELECT]: return
 	phase = Phase.ARROW
 	trajectory = PackedVector2Array()
+	preview_trails.clear()
 	queue_redraw()
 	var shooter = archers[side]
 	var target = archers[1 - side]
 	shooter.play_release_visual()
+	var angles: Array[float] = [shooter.aim_angle]
+	var multiplier := 1.0
+	if active_shot_kind == &"scatter":
+		angles = [clampf(shooter.aim_angle - balance.scatter_angle_degrees, balance.min_angle, balance.max_angle), shooter.aim_angle, clampf(shooter.aim_angle + balance.scatter_angle_degrees, balance.min_angle, balance.max_angle)]
+		multiplier = balance.scatter_damage_multiplier
+	elif active_shot_kind == &"heavy":
+		multiplier = balance.heavy_damage_multiplier
+	if active_shot_kind != &"normal": shooter.skill_uses -= 1
+	remaining_arrows = angles.size()
+	shot_results.clear()
+	active_arrows.clear()
 	if side == 0:
-		var shot_trace: Dictionary = BallisticsScript.trace(
-			shooter.muzzle_position(),
-			shooter.launch_direction() * balance.launch_speed(power),
-			balance.gravity,
-			balance.arrow_timeout,
-			balance.world_width,
-			balance.world_bottom,
-			terrain,
-			target
-		)
+		var paths: Array = []
+		for angle in angles:
+			var direction := _shot_direction(shooter, angle)
+			var shot_trace: Dictionary = BallisticsScript.trace(shooter.muzzle_position(), direction * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target, BallisticsScript.DEFAULT_STEP, barriers)
+			paths.append(shot_trace.points)
 		pending_player_shot = {
 			"angle": shooter.aim_angle,
 			"power": power,
+			"skill": active_shot_kind,
 			"shooter_position": shooter.global_position,
 			"target_position": target.global_position,
-			"trajectory": shot_trace.points
+			"trajectory": paths[roundi((angles.size() - 1) * 0.5)],
+			"trajectories": paths
 		}
-	active_arrow = ArrowScript.new()
-	match_root.add_child(active_arrow)
-	active_arrow.launch(shooter.muzzle_position(), shooter.launch_direction() * balance.launch_speed(power), shooter, target, terrain, balance.gravity, balance.arrow_timeout)
-	active_arrow.stopped.connect(_on_arrow_stopped.bind(turn_token))
-	status_label.text = "%s FIRES · %.1f° · %d%%" % [shooter.display_name, shooter.aim_angle, roundi(power * 100.0)]
+	for angle in angles:
+		var arrow = ArrowScript.new()
+		match_root.add_child(arrow)
+		arrow.launch(shooter.muzzle_position(), _shot_direction(shooter, angle) * balance.launch_speed(power), shooter, target, terrain, balance.gravity, balance.arrow_timeout, barriers, multiplier)
+		arrow.stopped.connect(_on_arrow_stopped.bind(turn_token, arrow))
+		active_arrows.append(arrow)
+	active_arrow = active_arrows[0]
+	status_label.text = "%s 发射%s · %.1f° · %d%%" % [shooter.display_name, ROLES[shooter.role_id].skill if active_shot_kind != &"normal" else "普通箭", shooter.aim_angle, roundi(power * 100.0)]
 	_update_ui()
 
-func _on_arrow_stopped(result: Dictionary, token: int) -> void:
+func _shot_direction(shooter, angle: float) -> Vector2:
+	return Vector2(cos(deg_to_rad(angle)) * shooter.facing_sign(), -sin(deg_to_rad(angle))).normalized()
+
+func _on_arrow_stopped(result: Dictionary, token: int, arrow) -> void:
 	if token != turn_token or phase != Phase.ARROW: return
-	phase = Phase.RESOLVE
-	if is_instance_valid(active_arrow):
+	shot_results.append(result)
+	remaining_arrows -= 1
+	if is_instance_valid(arrow):
 		if result.kind in [&"out_of_bounds", &"timeout"]:
-			active_arrow.queue_free()
+			arrow.queue_free()
 		else:
-			landed_arrows.append(active_arrow)
+			landed_arrows.append(arrow)
 			while landed_arrows.size() > 12:
 				var oldest = landed_arrows.pop_front()
 				if is_instance_valid(oldest): oldest.queue_free()
 	if result.kind == &"actor":
-		var damage: int = balance.damage_for(result.part)
+		var damage: int = roundi(balance.damage_for(result.part) * arrow.damage_multiplier)
 		var target = archers[1 - current_side]
 		target.apply_damage(damage)
 		var part_name: String = {&"head": "HEAD", &"torso": "TORSO", &"legs": "LEGS"}[result.part]
 		hit_label.text = "%s −%d" % [part_name, damage]
 		status_label.text = "%s HITS %s!" % [archers[current_side].display_name, target.display_name]
+	elif result.kind == &"barrier":
+		result.barrier.take_arrow_hit()
+		hit_label.text = "壁垒命中 · 剩余%d次" % result.barrier.hit_points
 	else:
 		match result.kind:
 			&"terrain": hit_label.text = "GROUND HIT"
 			&"timeout": hit_label.text = "FLIGHT TIMEOUT"
 			_: hit_label.text = "OUT OF BOUNDS"
+	if remaining_arrows > 0:
+		active_arrow = null
+		for flying in active_arrows:
+			if is_instance_valid(flying) and flying.active:
+				active_arrow = flying
+				break
+		return
+	phase = Phase.RESOLVE
 	if current_side == 0:
 		last_player_shot = pending_player_shot.duplicate()
-		last_player_shot["kind"] = result.kind
-		last_player_shot["point"] = result.point
-		if result.has("part"): last_player_shot["part"] = result.part
+		var best_result: Dictionary = result
+		for shot_result in shot_results:
+			if shot_result.kind == &"actor": best_result = shot_result
+		last_player_shot["kind"] = best_result.kind
+		last_player_shot["point"] = best_result.point
+		if best_result.has("part"): last_player_shot["part"] = best_result.part
 		pending_player_shot.clear()
 		_update_last_shot_ui()
 		queue_redraw()
@@ -630,12 +877,31 @@ func _ai_turn(token: int) -> void:
 	status_label.text = "CPU IS SCOUTING..."
 	await get_tree().create_timer(0.45).timeout
 	if token != turn_token: return
+	if archers[1].role_id == &"architect" and archers[1].skill_uses > 0 and rng.randf() < 0.35:
+		_begin_build(1)
+		var candidate: float = archers[1].position.x - 170.0
+		for attempt in 5:
+			if _barrier_placement_valid(1, candidate): break
+			candidate += 55.0
+		_update_barrier_preview(candidate)
+		await get_tree().create_timer(0.3).timeout
+		if token != turn_token: return
+		if barrier_preview.valid_placement:
+			_place_barrier()
+			return
+		barrier_preview.queue_free()
+		barrier_preview = null
+		phase = Phase.SELECT
 	var solution: Dictionary = await _find_ai_shot(token)
 	if token != turn_token: return
 	if solution.is_empty():
 		await _ai_move(token)
 		return
 	archers[1].aim_angle = clampf(solution.angle + rng.randf_range(-2.0, 2.0), balance.min_angle, balance.max_angle)
+	active_shot_kind = &"normal"
+	if archers[1].skill_uses > 0:
+		if archers[1].role_id == &"shark": active_shot_kind = &"heavy"
+		elif archers[1].role_id == &"ranger": active_shot_kind = &"scatter"
 	archers[1].set_visual_state(&"aim")
 	archers[1].queue_redraw()
 	phase = Phase.AIM
@@ -682,7 +948,7 @@ func _simulate_shot(shooter, target, angle: float, power: float) -> Dictionary:
 	var sign_dir: float = shooter.facing_sign()
 	var dir := Vector2(cos(deg_to_rad(angle)) * sign_dir, -sin(deg_to_rad(angle)))
 	var origin: Vector2 = shooter.global_position + Vector2(0.0, -58.0) + dir * 34.0
-	var traced: Dictionary = BallisticsScript.trace(origin, dir * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target)
+	var traced: Dictionary = BallisticsScript.trace(origin, dir * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target, BallisticsScript.DEFAULT_STEP, barriers)
 	return {"hit_actor": traced.result.kind == &"actor", "score": traced.closest}
 
 func _ai_move(token: int) -> void:
@@ -706,24 +972,30 @@ func _ai_move(token: int) -> void:
 func _update_trajectory(power: float) -> void:
 	var shooter = archers[current_side]
 	var target = archers[1 - current_side]
-	var traced: Dictionary = BallisticsScript.trace(shooter.muzzle_position(), shooter.launch_direction() * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target)
-	trajectory = BallisticsScript.first_fraction_by_arc(traced.points, 0.5)
+	var angles: Array[float] = [shooter.aim_angle]
+	if active_shot_kind == &"scatter": angles = [clampf(shooter.aim_angle - balance.scatter_angle_degrees, balance.min_angle, balance.max_angle), shooter.aim_angle, clampf(shooter.aim_angle + balance.scatter_angle_degrees, balance.min_angle, balance.max_angle)]
+	preview_trails.clear()
+	for angle in angles:
+		var traced: Dictionary = BallisticsScript.trace(shooter.muzzle_position(), _shot_direction(shooter, angle) * balance.launch_speed(power), balance.gravity, balance.arrow_timeout, balance.world_width, balance.world_bottom, terrain, target, BallisticsScript.DEFAULT_STEP, barriers)
+		preview_trails.append(BallisticsScript.first_fraction_by_arc(traced.points, 0.5))
+	trajectory = preview_trails[roundi((preview_trails.size() - 1) * 0.5)]
 	queue_redraw()
 
 func _draw() -> void:
 	if not last_player_shot.is_empty() and last_player_shot.has("trajectory"):
-		var previous_path: PackedVector2Array = last_player_shot.trajectory
-		if previous_path.size() > 1:
-			for i in range(previous_path.size() - 1):
-				if i % 2 == 0:
-					draw_line(previous_path[i], previous_path[i + 1], Color("#76b9d844"), 2.0)
-	if trajectory.size() > 1:
-		for i in range(trajectory.size() - 1):
-			var progress := float(i) / maxf(1.0, trajectory.size() - 2.0)
-			var alpha := 0.72
-			if progress > 0.8: alpha *= (1.0 - progress) / 0.2
-			draw_line(trajectory[i], trajectory[i + 1], Color(1.0, 0.84, 0.40, alpha), 3.0)
-	if not last_player_shot.is_empty() and last_player_shot.kind in [&"terrain", &"actor"]:
+		for previous_path in last_player_shot.get("trajectories", [last_player_shot.trajectory]):
+			if previous_path.size() > 1:
+				for i in range(previous_path.size() - 1):
+					if i % 2 == 0:
+						draw_line(previous_path[i], previous_path[i + 1], Color("#76b9d844"), 2.0)
+	for trail in preview_trails:
+		if trail.size() > 1:
+			for i in range(trail.size() - 1):
+				var progress := float(i) / maxf(1.0, trail.size() - 2.0)
+				var alpha := 0.72
+				if progress > 0.8: alpha *= (1.0 - progress) / 0.2
+				draw_line(trail[i], trail[i + 1], Color(1.0, 0.84, 0.40, alpha), 3.0)
+	if not last_player_shot.is_empty() and last_player_shot.kind in [&"terrain", &"actor", &"barrier"]:
 		var marker: Vector2 = last_player_shot.point
 		var marker_color := Color("#b8c4d255")
 		draw_circle(marker, 10.0, marker_color, false, 2.0)
@@ -746,6 +1018,7 @@ func _update_last_shot_ui() -> void:
 	match last_player_shot.kind:
 		&"actor": outcome = {&"head": "HEAD HIT", &"torso": "TORSO HIT", &"legs": "LEG HIT"}.get(last_player_shot.get("part", &""), "HIT")
 		&"terrain": outcome = "GROUND"
+		&"barrier": outcome = "BARRIER"
 		&"timeout": outcome = "TIMEOUT"
 		_: outcome = "OUT"
 	var changed: bool = archers.size() == 2 and (archers[0].global_position.distance_to(last_player_shot.shooter_position) > 0.5 or archers[1].global_position.distance_to(last_player_shot.target_position) > 0.5)
@@ -762,8 +1035,8 @@ func _update_ui() -> void:
 	last_shot_label.visible = phase != Phase.INTRO
 	player_hp.value = archers[0].health
 	ai_hp.value = archers[1].health
-	player_hp_text.text = "PLAYER %d / %d" % [archers[0].health, archers[0].max_health]
-	ai_hp_text.text = "CPU %d / %d" % [archers[1].health, archers[1].max_health]
+	player_hp_text.text = "玩家·%s %d / %d" % [archers[0].display_name, archers[0].health, archers[0].max_health]
+	ai_hp_text.text = "电脑·%s %d / %d" % [archers[1].display_name, archers[1].health, archers[1].max_health]
 	angle_label.text = "ANGLE %.1f°" % archers[current_side].aim_angle
 	power_bar.value = charge_power * 100.0
 	var descending: bool = fmod(charge_elapsed, balance.charge_half_cycle * 2.0) > balance.charge_half_cycle
@@ -774,7 +1047,11 @@ func _update_ui() -> void:
 	var player_can_choose := current_side == 0 and phase == Phase.SELECT
 	move_button.disabled = not player_can_choose
 	shoot_button.disabled = not player_can_choose
+	skill_button.disabled = not player_can_choose or archers[0].skill_uses <= 0
+	skill_button.text = "%s ×%d" % [ROLES[archers[0].role_id].skill, archers[0].skill_uses]
 	end_move_button.visible = current_side == 0 and phase == Phase.MOVE
-	cancel_button.visible = current_side == 0 and ((phase == Phase.MOVE and not move_committed) or (phase == Phase.AIM and not shot_committed))
+	place_button.visible = current_side == 0 and phase == Phase.BUILD
+	place_button.disabled = not is_instance_valid(barrier_preview) or not barrier_preview.valid_placement
+	cancel_button.visible = current_side == 0 and ((phase == Phase.MOVE and not move_committed) or (phase == Phase.AIM and not shot_committed) or phase == Phase.BUILD)
 	return_button.disabled = current_side != 0 or phase not in [Phase.SELECT, Phase.MOVE, Phase.AIM]
 	enemy_button.visible = current_side == 0 and phase in [Phase.SELECT, Phase.MOVE, Phase.AIM]

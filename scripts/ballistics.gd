@@ -3,7 +3,7 @@ extends RefCounted
 
 const DEFAULT_STEP := 1.0 / 60.0
 
-static func advance(position: Vector2, velocity: Vector2, delta: float, gravity: float, terrain, target = null) -> Dictionary:
+static func advance(position: Vector2, velocity: Vector2, delta: float, gravity: float, terrain, target = null, barriers: Array = []) -> Dictionary:
 	var next_position := position + velocity * delta + Vector2(0.0, gravity) * 0.5 * delta * delta
 	var next_velocity := velocity + Vector2(0.0, gravity) * delta
 	var ground_hit: Dictionary = terrain.segment_hit(position, next_position)
@@ -14,10 +14,15 @@ static func advance(position: Vector2, velocity: Vector2, delta: float, gravity:
 		collision = {"hit": true, "kind": &"terrain", "t": ground_hit.t, "point": ground_hit.point}
 	if actor_hit.hit and (not collision.hit or actor_hit.t < collision.t):
 		collision = {"hit": true, "kind": &"actor", "part": actor_hit.part, "t": actor_hit.t, "point": actor_hit.point}
+	for barrier in barriers:
+		if not is_instance_valid(barrier): continue
+		var barrier_hit: Dictionary = barrier.segment_hit(position, next_position)
+		if barrier_hit.hit and (not collision.hit or barrier_hit.t < collision.t):
+			collision = {"hit": true, "kind": &"barrier", "barrier": barrier, "t": barrier_hit.t, "point": barrier_hit.point}
 	if collision.hit: next_position = collision.point
 	return {"position": next_position, "velocity": next_velocity, "collision": collision}
 
-static func trace(origin: Vector2, initial_velocity: Vector2, gravity: float, timeout: float, world_width: float, world_bottom: float, terrain, target = null, step_delta := DEFAULT_STEP) -> Dictionary:
+static func trace(origin: Vector2, initial_velocity: Vector2, gravity: float, timeout: float, world_width: float, world_bottom: float, terrain, target = null, step_delta := DEFAULT_STEP, barriers: Array = []) -> Dictionary:
 	var points := PackedVector2Array([origin])
 	var position := origin
 	var velocity := initial_velocity
@@ -27,7 +32,7 @@ static func trace(origin: Vector2, initial_velocity: Vector2, gravity: float, ti
 	if is_instance_valid(target): target_center = target.global_position + Vector2(0.0, -50.0)
 	var max_steps := mini(720, int(ceil(timeout / step_delta)) + 1)
 	for step in max_steps:
-		var frame := advance(position, velocity, step_delta, gravity, terrain, target)
+		var frame := advance(position, velocity, step_delta, gravity, terrain, target, barriers)
 		position = frame.position
 		velocity = frame.velocity
 		elapsed += step_delta

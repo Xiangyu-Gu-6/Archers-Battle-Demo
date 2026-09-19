@@ -2,6 +2,7 @@ class_name FlyingArrow
 extends Node2D
 
 const BallisticsScript := preload("res://scripts/ballistics.gd")
+const HEAVY_ARROW := preload("res://assets/art/skills/shark_heavy_arrow_v01.png")
 
 signal stopped(result: Dictionary)
 var velocity := Vector2.ZERO
@@ -11,24 +12,33 @@ var timeout := 8.0
 var shooter
 var target
 var terrain
+var barriers: Array = []
+var damage_multiplier := 1.0
 var world_width := 2400.0
 var active := true
 
-func launch(origin: Vector2, initial_velocity: Vector2, owner_archer, target_archer, ground, gravity_value: float, timeout_value: float) -> void:
+func launch(origin: Vector2, initial_velocity: Vector2, owner_archer, target_archer, ground, gravity_value: float, timeout_value: float, obstacles: Array = [], multiplier := 1.0) -> void:
 	global_position = origin
 	velocity = initial_velocity
 	shooter = owner_archer
 	target = target_archer
 	terrain = ground
+	barriers = obstacles
+	damage_multiplier = multiplier
 	gravity = gravity_value
 	timeout = timeout_value
 	world_width = ground.world_width
 	rotation = velocity.angle()
+	if damage_multiplier > 1.0:
+		var heavy_art := Sprite2D.new()
+		heavy_art.texture = HEAVY_ARROW
+		heavy_art.scale = Vector2(0.35, 0.35)
+		add_child(heavy_art)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
 	if not active: return
-	var frame: Dictionary = BallisticsScript.advance(global_position, velocity, delta, gravity, terrain, target)
+	var frame: Dictionary = BallisticsScript.advance(global_position, velocity, delta, gravity, terrain, target, barriers)
 	global_position = frame.position
 	velocity = frame.velocity
 	if frame.collision.hit:
@@ -48,6 +58,7 @@ func _finish(result: Dictionary) -> void:
 	stopped.emit(result)
 
 func _draw() -> void:
+	if damage_multiplier > 1.0: return
 	draw_line(Vector2(-20.0, 0.0), Vector2(8.0, 0.0), Color("#f7efe0"), 3.0)
 	draw_colored_polygon(PackedVector2Array([Vector2(8.0, 0.0), Vector2(1.0, -4.0), Vector2(1.0, 4.0)]), Color("#ffce57"))
 	draw_line(Vector2(-18.0, 0.0), Vector2(-24.0, -5.0), Color("#f06d62"), 2.0)

@@ -17,6 +17,7 @@ func check(condition: bool, message: String) -> void:
 func _run() -> void:
 	var game = MainScene.instantiate()
 	root.add_child(game)
+	game._start_selected_match()
 	while game.rebuilding_match:
 		await process_frame
 	game.turn_token += 1

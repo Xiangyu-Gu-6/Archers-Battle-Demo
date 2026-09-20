@@ -11,8 +11,8 @@ const ArtBackdropScript := preload("res://scripts/art_backdrop.gd")
 const BarrierScript := preload("res://scripts/architect_barrier.gd")
 const ROLES := {
 	&"ranger": {"name": "翡翠游侠", "skill": "翠羽三连", "detail": "3支散射箭，每支造成普通箭80%伤害。每局1次。", "texture": preload("res://assets/art/characters/emerald_ranger_static_right_v01.png")},
-	&"shark": {"name": "船骸鲨客", "skill": "鲨牙重击", "detail": "1支强化箭，造成普通箭150%伤害。每局1次。", "texture": preload("res://assets/art/characters/shipwreck_shark_static_left_v01.png")},
-	&"architect": {"name": "建筑师", "skill": "搭建壁垒", "detail": "己方区域建造120×80壁垒，挡住2次箭矢。占用一回合，每局1次。", "texture": preload("res://assets/art/characters/architect/architect_static_right_v01.png")}
+	&"shark": {"name": "船骸鲨客", "skill": "鲨牙重击", "detail": "1支强化箭，造成普通箭150%伤害。每局1次。", "texture": preload("res://assets/art/characters/shipwreck_shark/shipwreck_shark_skill_portrait_v01.png")},
+	&"architect": {"name": "建筑师", "skill": "搭建壁垒", "detail": "己方区域建造120×80壁垒，挡住2次箭矢。占用一回合，每局1次。", "texture": preload("res://assets/art/characters/architect/architect_skill_portrait_v01.png")}
 }
 
 var balance = BalanceScript.new()
@@ -182,7 +182,8 @@ func _build_ui() -> void:
 	move_button.theme = load("res://assets/ui/themes/move_action_button_theme_v01.tres")
 	shoot_button = Button.new(); shoot_button.text = "射击"
 	shoot_button.theme = load("res://assets/ui/themes/shoot_action_button_theme_v01.tres")
-	skill_button = Button.new(); skill_button.text = "专属技能"
+	skill_button = Button.new(); skill_button.text = "技能×1"
+	skill_button.theme = load("res://assets/ui/themes/move_action_button_theme_v01.tres")
 	end_move_button = Button.new(); end_move_button.text = "END MOVE"
 	cancel_button = Button.new(); cancel_button.text = "CANCEL"
 	return_button = Button.new(); return_button.text = "MY ARCHER"
@@ -333,7 +334,12 @@ func _apply_skill_button_art(role: StringName) -> void:
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var style := StyleBoxTexture.new()
 		style.texture = load("res://assets/ui/skills/%s_skill_button_%s_v01.png" % [role, state])
+		style.content_margin_left = 50.0
+		style.content_margin_top = 8.0 if state == "pressed" else 5.0
+		style.content_margin_right = 8.0
+		style.content_margin_bottom = 2.0 if state == "pressed" else 5.0
 		skill_button.add_theme_stylebox_override(state, style)
+	skill_button.add_theme_stylebox_override("focus", skill_button.get_theme_stylebox("hover"))
 
 func _show_hero_select() -> void:
 	turn_token += 1
@@ -522,6 +528,7 @@ func _choose_skill() -> void:
 func _enter_aim() -> void:
 	phase = Phase.AIM
 	archers[current_side].set_visual_state(&"aim")
+	archers[current_side].set_skill_visual(active_shot_kind)
 	shot_committed = false
 	var preview_power := float(last_player_shot.get("power", 0.5))
 	status_label.text = "%s · 预览 %d%% · 按住空格蓄力" % [active_shot_kind, roundi(preview_power * 100.0)]
@@ -530,6 +537,7 @@ func _enter_aim() -> void:
 
 func _begin_build(side: int) -> void:
 	phase = Phase.BUILD
+	archers[side].set_visual_state(&"build_preview")
 	barrier_preview = BarrierScript.new()
 	match_root.add_child(barrier_preview)
 	barrier_preview.setup(Vector2(balance.barrier_width, balance.barrier_height), balance.barrier_hit_points, true)
@@ -565,6 +573,7 @@ func _place_barrier() -> void:
 	barrier_preview.queue_free()
 	barrier_preview = null
 	archers[current_side].skill_uses -= 1
+	archers[current_side].play_build_visual()
 	status_label.text = "%s 搭建了壁垒" % archers[current_side].display_name
 	_finish_action()
 
@@ -761,7 +770,7 @@ func _fire_arrow(side: int, power: float) -> void:
 	queue_redraw()
 	var shooter = archers[side]
 	var target = archers[1 - side]
-	shooter.play_release_visual()
+	shooter.play_release_visual(active_shot_kind)
 	var angles: Array[float] = [shooter.aim_angle]
 	var multiplier := 1.0
 	if active_shot_kind == &"scatter":
@@ -865,6 +874,8 @@ func _end_game() -> void:
 	phase = Phase.GAME_OVER
 	turn_token += 1
 	var player_won: bool = archers[1].health <= 0
+	archers[0].set_visual_state(&"victory" if player_won else &"defeat")
+	archers[1].set_visual_state(&"defeat" if player_won else &"victory")
 	result_label.text = ("VICTORY!" if player_won else "DEFEAT") + "\n\nPLAYER %d / CPU %d" % [archers[0].health, archers[1].health]
 	result_panel.visible = true
 	turn_label.text = "MATCH OVER"
@@ -902,6 +913,7 @@ func _ai_turn(token: int) -> void:
 	if archers[1].skill_uses > 0:
 		if archers[1].role_id == &"shark": active_shot_kind = &"heavy"
 		elif archers[1].role_id == &"ranger": active_shot_kind = &"scatter"
+	archers[1].set_skill_visual(active_shot_kind)
 	archers[1].set_visual_state(&"aim")
 	archers[1].queue_redraw()
 	phase = Phase.AIM
@@ -1048,7 +1060,9 @@ func _update_ui() -> void:
 	move_button.disabled = not player_can_choose
 	shoot_button.disabled = not player_can_choose
 	skill_button.disabled = not player_can_choose or archers[0].skill_uses <= 0
-	skill_button.text = "%s ×%d" % [ROLES[archers[0].role_id].skill, archers[0].skill_uses]
+	var skill_labels := {&"ranger": "三连", &"shark": "重击", &"architect": "建造"}
+	skill_button.text = "%s×%d" % [skill_labels[archers[0].role_id], archers[0].skill_uses]
+	skill_button.tooltip_text = "%s：%s" % [ROLES[archers[0].role_id].skill, ROLES[archers[0].role_id].detail]
 	end_move_button.visible = current_side == 0 and phase == Phase.MOVE
 	place_button.visible = current_side == 0 and phase == Phase.BUILD
 	place_button.disabled = not is_instance_valid(barrier_preview) or not barrier_preview.valid_placement

@@ -10,10 +10,10 @@ config_version=5
 
 [application]
 
-config/name="弓箭手对战 Demo 3 · 角色技能"
+config/name="弓箭手对战 Demo 4 · 骨骼对战"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7")
-config/version="0.5.0-plan3"
+config/version="0.6.0-demo4"
 
 [display]
 

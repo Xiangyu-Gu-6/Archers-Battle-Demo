@@ -1,10 +1,8 @@
 class_name Archer
 extends Node2D
 
-const CPU_TEXTURE := preload("res://assets/art/characters/shipwreck_shark_ingame_100px_left_v01.png")
-const ARCHITECT_LEFT := preload("res://assets/art/characters/architect/architect_ingame_100px_left_v01.png")
-const ARCHITECT_RIGHT := preload("res://assets/art/characters/architect/architect_ingame_100px_right_v01.png")
 const EmeraldRangerRigScript := preload("res://scripts/emerald_ranger_rig.gd")
+const CarnivalCharacterRigScript := preload("res://scripts/carnival_character_rig.gd")
 
 var display_name := "Archer"
 var side := 0
@@ -17,9 +15,11 @@ var aim_angle := 45.0:
 		aim_angle = value
 		if is_instance_valid(rig_visual):
 			rig_visual.set_aim_degrees(value)
+		if is_instance_valid(character_rig): character_rig.set_aim_degrees(value)
 var body_color := Color("#52a7ff")
 var art_sprite: Sprite2D
 var rig_visual: EmeraldRangerRig
+var character_rig: CarnivalCharacterRig
 
 func setup(which_side: int, label_text: String, color: Color, hp: int, role: StringName = &"") -> void:
 	side = which_side
@@ -34,6 +34,7 @@ func setup(which_side: int, label_text: String, color: Color, hp: int, role: Str
 func _build_art_sprite() -> void:
 	if is_instance_valid(art_sprite): art_sprite.queue_free()
 	if is_instance_valid(rig_visual): rig_visual.queue_free()
+	if is_instance_valid(character_rig): character_rig.queue_free()
 	if role_id == &"ranger":
 		rig_visual = EmeraldRangerRigScript.new()
 		rig_visual.name = "AnimatedCharacterRig"
@@ -41,15 +42,11 @@ func _build_art_sprite() -> void:
 		rig_visual.set_aim_degrees(aim_angle)
 		if side == 1: rig_visual.scale.x = -1.0
 		return
-	art_sprite = Sprite2D.new()
-	art_sprite.name = "CharacterArt"
-	art_sprite.texture = (ARCHITECT_RIGHT if side == 0 else ARCHITECT_LEFT) if role_id == &"architect" else CPU_TEXTURE
-	art_sprite.centered = false
-	art_sprite.position = Vector2(-80.0, -116.0)
-	if role_id == &"shark" and side == 0:
-		art_sprite.flip_h = true
-	art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	add_child(art_sprite)
+	character_rig = CarnivalCharacterRigScript.new()
+	character_rig.name = "AnimatedCharacterRig"
+	character_rig.configure(role_id, side)
+	add_child(character_rig)
+	character_rig.set_aim_degrees(aim_angle)
 
 func facing_sign() -> float:
 	return 1.0 if side == 0 else -1.0
@@ -65,19 +62,29 @@ func apply_damage(amount: int) -> void:
 	health = maxi(0, health - amount)
 	if is_instance_valid(rig_visual):
 		rig_visual.play_hit()
+	if is_instance_valid(character_rig): character_rig.play_hit()
 	queue_redraw()
 
 func set_visual_state(state: StringName) -> void:
 	if is_instance_valid(rig_visual):
 		rig_visual.set_combat_state(state)
+	if is_instance_valid(character_rig): character_rig.set_combat_state(state)
 
 func set_charge_visual(value: float) -> void:
 	if is_instance_valid(rig_visual):
 		rig_visual.set_charge(value)
+	if is_instance_valid(character_rig): character_rig.set_charge(value)
 
-func play_release_visual() -> void:
+func play_release_visual(kind: StringName = &"normal") -> void:
 	if is_instance_valid(rig_visual):
 		rig_visual.play_release()
+	if is_instance_valid(character_rig): character_rig.play_release(kind)
+
+func set_skill_visual(kind: StringName) -> void:
+	if is_instance_valid(character_rig): character_rig.set_skill_visual(kind)
+
+func play_build_visual() -> void:
+	if is_instance_valid(character_rig): character_rig.play_build()
 
 func segment_hit(a: Vector2, b: Vector2) -> Dictionary:
 	var la := a - global_position

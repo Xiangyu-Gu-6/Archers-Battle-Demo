@@ -33,7 +33,7 @@ func _run() -> void:
 	check(rig.sprites.size() == 16, "rig must attach all 16 art parts")
 	check(is_instance_valid(rig.bow_string), "rig must include a dynamic bow string")
 	check(player.art_sprite == null, "player static composite must be replaced by the rig")
-	check(is_instance_valid(game.archers[1].art_sprite), "CPU keeps its static art until a shark rig exists")
+	check(is_instance_valid(game.archers[1].character_rig), "CPU shark or architect must use its character rig")
 
 	game.shoot_button.pressed.emit()
 	check(rig.combat_state == &"aim", "shoot choice must enter the aim pose")

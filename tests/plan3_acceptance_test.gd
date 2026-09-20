@@ -15,6 +15,7 @@ func check(condition: bool, message: String) -> void:
 func _run() -> void:
 	var game = MainScene.instantiate()
 	root.add_child(game)
+	check(is_equal_approx(game.balance.barrier_height, game.balance.CHARACTER_REFERENCE_HEIGHT * 1.5), "barrier must be 1.5 character heights")
 	check(game.phase == game.Phase.HERO_SELECT, "startup must show hero selection")
 	check(game.hero_panel.visible and game.selected_role == &"ranger", "ranger must be preselected")
 	for role in [&"ranger", &"shark", &"architect"]:
@@ -59,10 +60,14 @@ func _run() -> void:
 				game._show_hero_select()
 				continue
 			var barrier = game.barriers[0]
+			check(is_equal_approx(barrier.height, 150.0), "placed barrier must be 150 world units high")
+			check(is_equal_approx(barrier.sprite.scale.y * barrier.sprite.texture.get_height(), barrier.height), "barrier art must match collision height")
 			var y: float = barrier.position.y - 40.0
 			var start := Vector2(barrier.position.x - 100.0, y)
 			var frame: Dictionary = BallisticsScript.advance(start, Vector2(200.0, 0.0), 1.0, 0.0, game.terrain, null, game.barriers)
 			check(frame.collision.kind == &"barrier", "shared ballistics must stop at barrier")
+			var upper_start := Vector2(barrier.position.x - 100.0, barrier.position.y - 140.0)
+			check(barrier.segment_hit(upper_start, upper_start + Vector2(200.0, 0.0)).hit, "upper 1.5-height section must block arrows")
 			barrier.take_arrow_hit()
 			check(barrier.hit_points == 1 and barrier.segment_hit(start, start + Vector2(200, 0)).hit, "first hit must crack but still block")
 			barrier.take_arrow_hit()

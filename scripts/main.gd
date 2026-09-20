@@ -12,7 +12,7 @@ const BarrierScript := preload("res://scripts/architect_barrier.gd")
 const ROLES := {
 	&"ranger": {"name": "翡翠游侠", "skill": "翠羽三连", "detail": "3支散射箭，每支造成普通箭80%伤害。每局1次。", "texture": preload("res://assets/art/characters/emerald_ranger_static_right_v01.png")},
 	&"shark": {"name": "船骸鲨客", "skill": "鲨牙重击", "detail": "1支强化箭，造成普通箭150%伤害。每局1次。", "texture": preload("res://assets/art/characters/shipwreck_shark/shipwreck_shark_skill_portrait_v01.png")},
-	&"architect": {"name": "建筑师", "skill": "搭建壁垒", "detail": "己方区域建造120×80壁垒，挡住2次箭矢。占用一回合，每局1次。", "texture": preload("res://assets/art/characters/architect/architect_skill_portrait_v01.png")}
+	&"architect": {"name": "建筑师", "skill": "搭建壁垒", "detail": "己方区域建造120×150壁垒，高约1.5个角色身高，挡住2次箭矢。占用一回合，每局1次。", "texture": preload("res://assets/art/characters/architect/architect_skill_portrait_v01.png")}
 }
 
 var balance = BalanceScript.new()

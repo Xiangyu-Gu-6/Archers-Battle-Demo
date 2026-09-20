@@ -1,6 +1,8 @@
 class_name GameBalance
 extends Resource
 
+const CHARACTER_REFERENCE_HEIGHT := 100.0
+
 @export var max_health := 100
 @export var world_width := 2400.0
 @export var world_bottom := 760.0
@@ -26,7 +28,7 @@ extends Resource
 @export var scatter_damage_multiplier := 0.8
 @export var heavy_damage_multiplier := 1.5
 @export var barrier_width := 120.0
-@export var barrier_height := 80.0
+@export var barrier_height := CHARACTER_REFERENCE_HEIGHT * 1.5
 @export var barrier_hit_points := 2
 @export var skill_uses_per_match := 1
 

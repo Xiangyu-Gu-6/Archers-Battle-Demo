@@ -8,7 +8,7 @@ const INVALID := preload("res://assets/art/barriers/architect_placement_invalid_
 const DESTROYED := preload("res://assets/art/barriers/architect_barrier_destroyed_v01.png")
 
 var width := 120.0
-var height := 80.0
+var height := 150.0
 var hit_points := 2
 var preview := false
 var valid_placement := true

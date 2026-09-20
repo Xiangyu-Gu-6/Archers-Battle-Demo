@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "rig_type": "Godot Skeleton2D/Bone2D",
+  "facing": "right",
+  "authoring_fps": 12,
+  "root_bone": "Pelvis",
+  "bones": [
+    {
+      "name": "Pelvis",
+      "parent": null,
+      "rest_global_source_px": [
+        585,
+        959
+      ],
+      "rest_local_px": [
+        0,
+        0
+      ],
+      "suggested_length_px": 217.1
+    },
+    {
+      "name": "Spine",
+      "parent": "Pelvis",
+      "rest_global_source_px": [
+        578,
+        742
+      ],
+      "rest_local_px": [
+        -7,
+        -217
+      ],
+      "suggested_length_px": 187.7
+    },
+    {
+      "name": "Head",
+      "parent": "Spine",
+      "rest_global_source_px": [
+        546,
+        557
+      ],
+      "rest_local_px": [
+        -32,
+        -185
+      ],
+      "suggested_length_px": 186.3
+    },
+    {
+      "name": "Hat",
+      "parent": "Head",
+      "rest_global_source_px": [
+        536,
+        371
+      ],
+      "rest_local_px": [
+        -10,
+        -186
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "Feather",
+      "parent": "Head",
+      "rest_global_source_px": [
+        313,
+        760
+      ],
+      "rest_local_px": [
+        -233,
+        203
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "Quiver",
+      "parent": "Spine",
+      "rest_global_source_px": [
+        331,
+        808
+      ],
+      "rest_local_px": [
+        -247,
+        66
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "BeltPouch",
+      "parent": "Pelvis",
+      "rest_global_source_px": [
+        550,
+        785
+      ],
+      "rest_local_px": [
+        -35,
+        -174
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "RearUpperArm",
+      "parent": "Spine",
+      "rest_global_source_px": [
+        361,
+        643
+      ],
+      "rest_local_px": [
+        -217,
+        -99
+      ],
+      "suggested_length_px": 108.6
+    },
+    {
+      "name": "RearForearm",
+      "parent": "RearUpperArm",
+      "rest_global_source_px": [
+        469,
+        632
+      ],
+      "rest_local_px": [
+        108,
+        -11
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "FrontUpperArm",
+      "parent": "Spine",
+      "rest_global_source_px": [
+        709,
+        631
+      ],
+      "rest_local_px": [
+        131,
+        -111
+      ],
+      "suggested_length_px": 148.6
+    },
+    {
+      "name": "FrontForearm",
+      "parent": "FrontUpperArm",
+      "rest_global_source_px": [
+        857,
+        644
+      ],
+      "rest_local_px": [
+        148,
+        13
+      ],
+      "suggested_length_px": 256.3
+    },
+    {
+      "name": "BowGrip",
+      "parent": "FrontForearm",
+      "rest_global_source_px": [
+        1110,
+        603
+      ],
+      "rest_local_px": [
+        253,
+        -41
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "NockedArrow",
+      "parent": null,
+      "rest_global_source_px": [
+        625,
+        586
+      ],
+      "rest_local_px": [
+        40,
+        -373
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "RearThigh",
+      "parent": "Pelvis",
+      "rest_global_source_px": [
+        435,
+        957
+      ],
+      "rest_local_px": [
+        -150,
+        -2
+      ],
+      "suggested_length_px": 131.9
+    },
+    {
+      "name": "RearShin",
+      "parent": "RearThigh",
+      "rest_global_source_px": [
+        393,
+        1082
+      ],
+      "rest_local_px": [
+        -42,
+        125
+      ],
+      "suggested_length_px": 0.0
+    },
+    {
+      "name": "FrontThigh",
+      "parent": "Pelvis",
+      "rest_global_source_px": [
+        686,
+        960
+      ],
+      "rest_local_px": [
+        101,
+        1
+      ],
+      "suggested_length_px": 123.0
+    },
+    {
+      "name": "FrontShin",
+      "parent": "FrontThigh",
+      "rest_global_source_px": [
+        727,
+        1076
+      ],
+      "rest_local_px": [
+        41,
+        116
+      ],
+      "suggested_length_px": 0.0
+    }
+  ],
+  "ik_targets": {
+    "bow_hand": "BowGrip world target; aiming only",
+    "draw_hand": "RearForearm world target; aiming/charging only",
+    "front_foot": "terrain visual contact, gameplay body root unchanged",
+    "rear_foot": "terrain visual contact, gameplay body root unchanged"
+  },
+  "required_events": [
+    "projectile_spawn",
+    "barrier_placement_commit"
+  ],
+  "gameplay_constraints": {
+    "changes_collision": false,
+    "changes_projectile_physics": false,
+    "changes_turn_timing": false
+  }
+}

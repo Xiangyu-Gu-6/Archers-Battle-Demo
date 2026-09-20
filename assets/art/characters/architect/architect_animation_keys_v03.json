@@ -1,0 +1,393 @@
+{
+  "version": 3,
+  "character": "architect",
+  "authoring_fps": 12,
+  "units": "degrees around each pivot_source_px; keep visual root/feet in place",
+  "gameplay_root_motion": false,
+  "animation_event_policy": "visual markers must be synchronized to existing gameplay events; preview seconds never delay a turn",
+  "poses_degrees": {
+    "idle": {},
+    "anticipation": {
+      "torso": -4.1,
+      "head": -4.1,
+      "hat": -6.8,
+      "cape": 4.1,
+      "rear_upper_arm": -13.5,
+      "rear_forearm": -6.8,
+      "front_upper_arm": -8.1
+    },
+    "charge": {
+      "torso": -5.4,
+      "head": -5.4,
+      "hat": -8.1,
+      "cape": 9.5,
+      "rear_upper_arm": -18.9,
+      "rear_forearm": -13.5,
+      "front_upper_arm": -10.8,
+      "front_forearm": 6.8,
+      "bow": -4.1
+    },
+    "release": {
+      "torso": 4.1,
+      "head": 2.7,
+      "hat": 5.4,
+      "cape": -8.1,
+      "rear_upper_arm": 5.4,
+      "rear_forearm": 8.1,
+      "front_upper_arm": 6.8,
+      "bow": 6.8
+    },
+    "recoil": {
+      "torso": 6.8,
+      "head": 5.4,
+      "hat": 10.8,
+      "cape": -12.2,
+      "rear_upper_arm": 9.5,
+      "front_upper_arm": 10.8,
+      "bow": 9.5
+    },
+    "recover": {},
+    "blueprint": {
+      "torso": -6.8,
+      "head": -9.5,
+      "hat": -9.5,
+      "cape": 6.8,
+      "rear_upper_arm": -27.0,
+      "rear_forearm": -16.2,
+      "front_upper_arm": -20.2,
+      "front_forearm": -8.1
+    },
+    "throw": {
+      "torso": 8.1,
+      "head": 2.7,
+      "hat": 8.1,
+      "cape": -18.9,
+      "rear_upper_arm": 18.9,
+      "rear_forearm": 23.0,
+      "front_upper_arm": 17.6,
+      "front_forearm": 16.2
+    },
+    "breathe_up": {
+      "torso": -2,
+      "head": 1,
+      "hat": -2,
+      "cape": -4,
+      "tool_belt": 1
+    },
+    "move_a": {
+      "torso": 3,
+      "head": -2,
+      "rear_thigh": -16,
+      "rear_shin": 8,
+      "front_thigh": 17,
+      "front_shin": -9,
+      "rear_upper_arm": 7,
+      "front_upper_arm": -6,
+      "cape": 10,
+      "tool_belt": -3
+    },
+    "move_b": {
+      "torso": -3,
+      "head": 2,
+      "rear_thigh": 17,
+      "rear_shin": -9,
+      "front_thigh": -16,
+      "front_shin": 8,
+      "rear_upper_arm": -6,
+      "front_upper_arm": 7,
+      "cape": -10,
+      "tool_belt": 3
+    },
+    "hit": {
+      "torso": 12,
+      "head": 13,
+      "hat": 19,
+      "cape": -20,
+      "rear_upper_arm": 11,
+      "front_upper_arm": -12,
+      "tool_belt": 7
+    },
+    "defeat": {
+      "torso": 24,
+      "head": 22,
+      "hat": 25,
+      "cape": -25,
+      "front_thigh": 23,
+      "rear_thigh": -23,
+      "front_shin": -16,
+      "rear_shin": 16,
+      "bow": 17
+    },
+    "victory": {
+      "torso": -8,
+      "head": -7,
+      "hat": -10,
+      "cape": 15,
+      "rear_upper_arm": -23,
+      "rear_forearm": -12,
+      "front_upper_arm": -18,
+      "bow": -13
+    }
+  },
+  "animations": {
+    "normal_shoot": {
+      "duration_s": 1.05,
+      "keyframes": [
+        [
+          0.0,
+          "idle"
+        ],
+        [
+          0.18,
+          "anticipation"
+        ],
+        [
+          0.5,
+          "charge"
+        ],
+        [
+          0.6,
+          "release"
+        ],
+        [
+          0.74,
+          "recoil"
+        ],
+        [
+          1.05,
+          "recover"
+        ]
+      ],
+      "events": [
+        {
+          "id": "nocked_arrow_hide",
+          "at_s": 0.6,
+          "sync_to_gameplay": "projectile_spawn"
+        }
+      ],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0.6
+        }
+      }
+    },
+    "build_barrier": {
+      "duration_s": 1.25,
+      "keyframes": [
+        [
+          0.0,
+          "idle"
+        ],
+        [
+          0.2,
+          "anticipation"
+        ],
+        [
+          0.45,
+          "blueprint"
+        ],
+        [
+          0.7,
+          "blueprint"
+        ],
+        [
+          0.78,
+          "throw"
+        ],
+        [
+          0.95,
+          "recoil"
+        ],
+        [
+          1.25,
+          "recover"
+        ]
+      ],
+      "events": [
+        {
+          "id": "blueprint_show",
+          "at_s": 0.2,
+          "sync_to_gameplay": "visual_only"
+        },
+        {
+          "id": "folded_kit_show",
+          "at_s": 0.7,
+          "sync_to_gameplay": "visual_only"
+        },
+        {
+          "id": "barrier_placement_commit",
+          "at_s": 0.78,
+          "sync_to_gameplay": "confirmed_build_action"
+        },
+        {
+          "id": "blueprint_hide",
+          "at_s": 0.78,
+          "sync_to_gameplay": "visual_only"
+        }
+      ],
+      "visibility": {
+        "bow": {
+          "hide_from_s": 0.2,
+          "show_from_s": 1.08
+        },
+        "arrow": {
+          "hide_from_s": 0.2,
+          "show_from_s": 1.08
+        },
+        "blueprint_hand": {
+          "show_from_s": 0.2,
+          "hide_from_s": 0.78
+        },
+        "folded_barrier": {
+          "show_from_s": 0.7,
+          "hide_from_s": 0.78
+        }
+      }
+    },
+    "idle_loop": {
+      "duration_s": 1.0,
+      "loop": true,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.5,
+          "breathe_up"
+        ],
+        [
+          1.0,
+          "idle"
+        ]
+      ],
+      "events": [],
+      "visibility": {}
+    },
+    "move_loop": {
+      "duration_s": 0.67,
+      "loop": true,
+      "keyframes": [
+        [
+          0,
+          "move_a"
+        ],
+        [
+          0.335,
+          "move_b"
+        ],
+        [
+          0.67,
+          "move_a"
+        ]
+      ],
+      "events": [
+        {
+          "id": "visual_footfall_a",
+          "at_s": 0,
+          "sync_to_gameplay": "visual_only"
+        },
+        {
+          "id": "visual_footfall_b",
+          "at_s": 0.335,
+          "sync_to_gameplay": "visual_only"
+        }
+      ],
+      "visibility": {}
+    },
+    "hit_react": {
+      "duration_s": 0.42,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.13,
+          "hit"
+        ],
+        [
+          0.42,
+          "recover"
+        ]
+      ],
+      "events": [],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0
+        }
+      }
+    },
+    "defeat": {
+      "duration_s": 0.9,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.42,
+          "hit"
+        ],
+        [
+          0.9,
+          "defeat"
+        ]
+      ],
+      "events": [],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0
+        }
+      }
+    },
+    "victory": {
+      "duration_s": 0.9,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.42,
+          "victory"
+        ],
+        [
+          0.9,
+          "victory"
+        ]
+      ],
+      "events": [],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0
+        }
+      }
+    }
+  },
+  "recommended_secondary_motion": {
+    "hat_lag_frames": 1,
+    "cape_lag_frames": 2,
+    "tool_belt_lag_frames": 1
+  },
+  "collision_and_projectile": "unchanged; heavy shot is one arrow; build creates collision only at confirmed barrier placement event",
+  "preview_interpolation": "smoothstep between authored 12 FPS key poses; one-frame release visibility marker",
+  "rotation_limit_degrees": 25,
+  "notes": [
+    "Angles are deliberately expressive but visual-only. Programmer may drive IK hands along the same silhouettes.",
+    "Do not move root gameplay node or feet collision. Mirror only the visual rig for opposite side.",
+    "Authoring times are reference; bind release/build markers to existing gameplay events."
+  ],
+  "state_priority": [
+    "defeat",
+    "hit_react",
+    "build_barrier",
+    "normal_shoot",
+    "move_loop",
+    "idle_loop"
+  ],
+  "authoring_note": "Translation/IK and terrain foot planting belong to implementation; angle keys only drive art bones and do not change root gameplay position."
+}

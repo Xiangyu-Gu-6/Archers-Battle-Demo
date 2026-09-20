@@ -1,0 +1,379 @@
+{
+  "version": 6,
+  "asset_type": "rigged_2d_character_art",
+  "source": "res://assets/art/characters/architect/architect_static_right_v01.png",
+  "facing": "right",
+  "authoring_fps": 12,
+  "source_canvas_px": [
+    1227,
+    1282
+  ],
+  "root_pivot_source_px": [
+    585,
+    959
+  ],
+  "target_visible_height_world_px": 100,
+  "coordinate_convention": "source image top-left, x right, y down; each Sprite2D position = source_rect_xy - bone_position, pivot_local as given",
+  "z_order_back_to_front": [
+    "cape",
+    "rear_thigh",
+    "rear_shin",
+    "rear_upper_arm",
+    "rear_forearm",
+    "torso",
+    "front_thigh",
+    "front_shin",
+    "tool_belt",
+    "head",
+    "hat",
+    "front_upper_arm",
+    "front_forearm",
+    "bow",
+    "arrow",
+    "blueprint_hand",
+    "folded_barrier"
+  ],
+  "parts": {
+    "bow": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_bow_v04.png",
+      "parent_bone": "BowGrip",
+      "z_index": 13,
+      "source_rect_px": [
+        854,
+        60,
+        309,
+        1097
+      ],
+      "pivot_source_px": [
+        1110,
+        603
+      ],
+      "pivot_local_px": [
+        256,
+        543
+      ]
+    },
+    "arrow": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_arrow_v04.png",
+      "parent_bone": "NockedArrow",
+      "z_index": 14,
+      "source_rect_px": [
+        591,
+        536,
+        635,
+        98
+      ],
+      "pivot_source_px": [
+        625,
+        586
+      ],
+      "pivot_local_px": [
+        34,
+        50
+      ]
+    },
+    "hat": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_hat_v04.png",
+      "parent_bone": "Head",
+      "z_index": 10,
+      "source_rect_px": [
+        252,
+        178,
+        617,
+        244
+      ],
+      "pivot_source_px": [
+        536,
+        371
+      ],
+      "pivot_local_px": [
+        284,
+        193
+      ]
+    },
+    "front_forearm": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_front_forearm_v04.png",
+      "parent_bone": "FrontForearm",
+      "z_index": 12,
+      "source_rect_px": [
+        797,
+        618,
+        299,
+        99
+      ],
+      "pivot_source_px": [
+        857,
+        644
+      ],
+      "pivot_local_px": [
+        60,
+        26
+      ]
+    },
+    "front_upper_arm": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_front_upper_arm_v04.png",
+      "parent_bone": "FrontUpperArm",
+      "z_index": 11,
+      "source_rect_px": [
+        623,
+        618,
+        258,
+        135
+      ],
+      "pivot_source_px": [
+        709,
+        631
+      ],
+      "pivot_local_px": [
+        86,
+        13
+      ]
+    },
+    "rear_forearm": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_rear_forearm_v04.png",
+      "parent_bone": "RearForearm",
+      "z_index": 4,
+      "source_rect_px": [
+        361,
+        540,
+        290,
+        189
+      ],
+      "pivot_source_px": [
+        469,
+        632
+      ],
+      "pivot_local_px": [
+        108,
+        92
+      ]
+    },
+    "rear_upper_arm": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_rear_upper_arm_v04.png",
+      "parent_bone": "RearUpperArm",
+      "z_index": 3,
+      "source_rect_px": [
+        257,
+        542,
+        197,
+        220
+      ],
+      "pivot_source_px": [
+        361,
+        643
+      ],
+      "pivot_local_px": [
+        104,
+        101
+      ]
+    },
+    "head": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_head_v04.png",
+      "parent_bone": "Head",
+      "z_index": 9,
+      "source_rect_px": [
+        255,
+        379,
+        496,
+        188
+      ],
+      "pivot_source_px": [
+        546,
+        557
+      ],
+      "pivot_local_px": [
+        291,
+        178
+      ]
+    },
+    "rear_shin": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_rear_shin_v04.png",
+      "parent_bone": "RearShin",
+      "z_index": 2,
+      "source_rect_px": [
+        269,
+        1024,
+        209,
+        200
+      ],
+      "pivot_source_px": [
+        393,
+        1082
+      ],
+      "pivot_local_px": [
+        124,
+        58
+      ]
+    },
+    "front_shin": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_front_shin_v04.png",
+      "parent_bone": "FrontShin",
+      "z_index": 7,
+      "source_rect_px": [
+        651,
+        1023,
+        234,
+        201
+      ],
+      "pivot_source_px": [
+        727,
+        1076
+      ],
+      "pivot_local_px": [
+        76,
+        53
+      ]
+    },
+    "rear_thigh": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_rear_thigh_v04.png",
+      "parent_bone": "RearThigh",
+      "z_index": 1,
+      "source_rect_px": [
+        311,
+        893,
+        296,
+        157
+      ],
+      "pivot_source_px": [
+        435,
+        957
+      ],
+      "pivot_local_px": [
+        124,
+        64
+      ]
+    },
+    "front_thigh": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_front_thigh_v04.png",
+      "parent_bone": "FrontThigh",
+      "z_index": 6,
+      "source_rect_px": [
+        581,
+        899,
+        203,
+        196
+      ],
+      "pivot_source_px": [
+        686,
+        960
+      ],
+      "pivot_local_px": [
+        105,
+        61
+      ]
+    },
+    "tool_belt": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_tool_belt_v04.png",
+      "parent_bone": "BeltPouch",
+      "z_index": 8,
+      "source_rect_px": [
+        225,
+        713,
+        580,
+        306
+      ],
+      "pivot_source_px": [
+        550,
+        785
+      ],
+      "pivot_local_px": [
+        325,
+        72
+      ]
+    },
+    "cape": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_cape_v04.png",
+      "parent_bone": "Feather",
+      "z_index": 0,
+      "source_rect_px": [
+        34,
+        689,
+        273,
+        269
+      ],
+      "pivot_source_px": [
+        426,
+        630
+      ],
+      "pivot_local_px": [
+        392,
+        -59
+      ]
+    },
+    "torso": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_torso_v04.png",
+      "parent_bone": "Spine",
+      "z_index": 5,
+      "source_rect_px": [
+        332,
+        540,
+        516,
+        556
+      ],
+      "pivot_source_px": [
+        578,
+        742
+      ],
+      "pivot_local_px": [
+        246,
+        202
+      ],
+      "art_origin": "separate backfill reconstruction from static master"
+    },
+    "blueprint_hand": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_blueprint_hand_v04.png",
+      "parent_bone": "RearForearm",
+      "z_index": 13,
+      "source_rect_px": [
+        345,
+        425,
+        426,
+        326
+      ],
+      "pivot_source_px": [
+        463,
+        611
+      ],
+      "pivot_local_px": [
+        118,
+        186
+      ],
+      "visibility_default": false
+    },
+    "folded_barrier": {
+      "file": "res://assets/art/characters/architect/rig_parts_v04/architect_folded_barrier_v04.png",
+      "parent_bone": "FrontForearm",
+      "z_index": 14,
+      "source_rect_px": [
+        692,
+        517,
+        346,
+        166
+      ],
+      "pivot_source_px": [
+        767,
+        601
+      ],
+      "pivot_local_px": [
+        75,
+        84
+      ],
+      "visibility_default": false
+    }
+  },
+  "notes": [
+    "All cutouts are independent transparent PNGs; aligned at source_rect_px they reconstruct the source alpha exactly.",
+    "Occluded areas are not recoverable from flattened art. Keep rotations modest; overlap shoulders, elbows, knees by about 15-25 source px at joint seams.",
+    "Bow string is not a rigid art layer: render a dynamic Line2D between upper/lower bow tips and draw hand; hide static source traces as needed.",
+    "This pack drives visual bones only; do not derive hitboxes or projectile origin from sprite alpha.",
+    "v03 uses new clean torso underlay; do not use v01/v02 scattered torso as live sprite.",
+    "Body parts must be layered in listed z order. Moderate rotation only, as flattened source cannot reveal every occluded underside.",
+    "For mirrored facing, mirror a common visual root and all local anchors; never mirror projectile physics or collision logic.",
+    "v04 corrects pelvis root and maps secondary attachments to the shared 17-bone ranger interface.",
+    "v05/v04 PNGs add 8 transparent pixels on every edge; use these instead of tight-cropped candidate parts.",
+    "v06 references full visual state library: idle, move, normal shot, skill, hit, defeat, victory."
+  ],
+  "recommended_uniform_scale": 0.08711,
+  "skeleton_file": "res://assets/art/characters/architect/architect_skeleton_v01.json",
+  "animation_keys_file": "res://assets/art/characters/architect/architect_animation_keys_v03.json"
+}

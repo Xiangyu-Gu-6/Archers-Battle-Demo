@@ -1,0 +1,386 @@
+{
+  "version": 3,
+  "character": "shipwreck_shark",
+  "authoring_fps": 12,
+  "units": "degrees around each pivot_source_px; keep visual root/feet in place",
+  "gameplay_root_motion": false,
+  "animation_event_policy": "visual markers must be synchronized to existing gameplay events; preview seconds never delay a turn",
+  "poses_degrees": {
+    "idle": {},
+    "anticipation": {
+      "torso": -3.1,
+      "head": -3.1,
+      "fin": -7.8,
+      "headband": -6.2,
+      "front_upper_arm": 6.2,
+      "rear_upper_arm": -9.3,
+      "quiver": -3.1
+    },
+    "charge": {
+      "torso": -6.2,
+      "head": -4.7,
+      "fin": -15.5,
+      "headband": -18.6,
+      "front_upper_arm": 17.1,
+      "front_forearm": -10.8,
+      "rear_upper_arm": -18.6,
+      "rear_forearm": 14.0,
+      "bow": -4.7,
+      "quiver": -6.2
+    },
+    "release": {
+      "torso": 6.2,
+      "head": 4.7,
+      "fin": 6.2,
+      "headband": 9.3,
+      "front_upper_arm": -7.8,
+      "rear_upper_arm": 7.8,
+      "bow": 10.8,
+      "quiver": 10.8
+    },
+    "recoil": {
+      "torso": 10.8,
+      "head": 7.8,
+      "fin": 15.5,
+      "headband": 20.2,
+      "front_upper_arm": -14.0,
+      "front_forearm": -4.7,
+      "rear_upper_arm": 12.4,
+      "rear_forearm": 7.8,
+      "bow": 14.0,
+      "quiver": 17.1
+    },
+    "recover": {},
+    "breathe_up": {
+      "torso": -2,
+      "head": 1,
+      "fin": -3,
+      "headband": -4,
+      "quiver": -2
+    },
+    "move_a": {
+      "torso": 3,
+      "head": -2,
+      "front_thigh": 17,
+      "front_shin": -10,
+      "rear_thigh": -16,
+      "rear_shin": 9,
+      "front_upper_arm": -6,
+      "rear_upper_arm": 7,
+      "headband": 7,
+      "quiver": -5
+    },
+    "move_b": {
+      "torso": -3,
+      "head": 2,
+      "front_thigh": -16,
+      "front_shin": 8,
+      "rear_thigh": 17,
+      "rear_shin": -10,
+      "front_upper_arm": 7,
+      "rear_upper_arm": -6,
+      "headband": -8,
+      "quiver": 5
+    },
+    "light_charge": {
+      "torso": -4.0,
+      "head": -3.0,
+      "fin": -9.9,
+      "headband": -11.9,
+      "front_upper_arm": 10.9,
+      "front_forearm": -6.9,
+      "rear_upper_arm": -11.9,
+      "rear_forearm": 9.0,
+      "bow": -3.0,
+      "quiver": -4.0
+    },
+    "light_recoil": {
+      "torso": 6.9,
+      "head": 5.0,
+      "fin": 9.9,
+      "headband": 12.9,
+      "front_upper_arm": -9.0,
+      "front_forearm": -3.0,
+      "rear_upper_arm": 7.9,
+      "rear_forearm": 5.0,
+      "bow": 9.0,
+      "quiver": 10.9
+    },
+    "hit": {
+      "torso": 11,
+      "head": 15,
+      "fin": 19,
+      "headband": 25,
+      "front_upper_arm": -14,
+      "rear_upper_arm": 12,
+      "quiver": 19
+    },
+    "defeat": {
+      "torso": 22,
+      "head": 20,
+      "fin": 22,
+      "headband": 25,
+      "front_thigh": -24,
+      "rear_thigh": 24,
+      "front_shin": 18,
+      "rear_shin": -18,
+      "bow": 18,
+      "quiver": 20
+    },
+    "victory": {
+      "torso": -7,
+      "head": -9,
+      "fin": -12,
+      "headband": -16,
+      "front_upper_arm": -20,
+      "front_forearm": -12,
+      "bow": -17,
+      "rear_upper_arm": 10,
+      "quiver": -9
+    }
+  },
+  "animations": {
+    "heavy_shot": {
+      "duration_s": 1.2,
+      "keyframes": [
+        [
+          0.0,
+          "idle"
+        ],
+        [
+          0.18,
+          "anticipation"
+        ],
+        [
+          0.56,
+          "charge"
+        ],
+        [
+          0.66,
+          "charge"
+        ],
+        [
+          0.7,
+          "release"
+        ],
+        [
+          0.84,
+          "recoil"
+        ],
+        [
+          1.2,
+          "recover"
+        ]
+      ],
+      "events": [
+        {
+          "id": "nocked_arrow_hide",
+          "at_s": 0.7,
+          "sync_to_gameplay": "projectile_spawn"
+        },
+        {
+          "id": "single_heavy_arrow_visual",
+          "at_s": 0.7,
+          "sync_to_gameplay": "projectile_spawn"
+        },
+        {
+          "id": "heavy_hit_spark",
+          "at_s": null,
+          "sync_to_gameplay": "actual_collision_point_only"
+        }
+      ],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0.7
+        }
+      }
+    },
+    "normal_shoot": {
+      "duration_s": 1.05,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.16,
+          "anticipation"
+        ],
+        [
+          0.49,
+          "light_charge"
+        ],
+        [
+          0.6,
+          "release"
+        ],
+        [
+          0.74,
+          "light_recoil"
+        ],
+        [
+          1.05,
+          "recover"
+        ]
+      ],
+      "events": [
+        {
+          "id": "nocked_arrow_hide",
+          "at_s": 0.6,
+          "sync_to_gameplay": "projectile_spawn"
+        }
+      ],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0.6
+        }
+      }
+    },
+    "idle_loop": {
+      "duration_s": 1.0,
+      "loop": true,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.5,
+          "breathe_up"
+        ],
+        [
+          1.0,
+          "idle"
+        ]
+      ],
+      "events": [],
+      "visibility": {}
+    },
+    "move_loop": {
+      "duration_s": 0.67,
+      "loop": true,
+      "keyframes": [
+        [
+          0,
+          "move_a"
+        ],
+        [
+          0.335,
+          "move_b"
+        ],
+        [
+          0.67,
+          "move_a"
+        ]
+      ],
+      "events": [
+        {
+          "id": "visual_footfall_a",
+          "at_s": 0,
+          "sync_to_gameplay": "visual_only"
+        },
+        {
+          "id": "visual_footfall_b",
+          "at_s": 0.335,
+          "sync_to_gameplay": "visual_only"
+        }
+      ],
+      "visibility": {}
+    },
+    "hit_react": {
+      "duration_s": 0.42,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.13,
+          "hit"
+        ],
+        [
+          0.42,
+          "recover"
+        ]
+      ],
+      "events": [],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0
+        }
+      }
+    },
+    "defeat": {
+      "duration_s": 0.9,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.42,
+          "hit"
+        ],
+        [
+          0.9,
+          "defeat"
+        ]
+      ],
+      "events": [],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0
+        }
+      }
+    },
+    "victory": {
+      "duration_s": 0.9,
+      "loop": false,
+      "keyframes": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          0.42,
+          "victory"
+        ],
+        [
+          0.9,
+          "victory"
+        ]
+      ],
+      "events": [],
+      "visibility": {
+        "arrow": {
+          "hide_from_s": 0
+        }
+      }
+    }
+  },
+  "recommended_secondary_motion": {
+    "headband_lag_frames": 2,
+    "fin_lag_frames": 1,
+    "quiver_lag_frames": 2
+  },
+  "collision_and_projectile": "unchanged; heavy shot is one arrow; build creates collision only at confirmed barrier placement event",
+  "preview_interpolation": "smoothstep between authored 12 FPS key poses; one-frame release visibility marker",
+  "rotation_limit_degrees": 25,
+  "notes": [
+    "Angles are deliberately expressive but visual-only. Programmer may drive IK hands along the same silhouettes.",
+    "Do not move root gameplay node or feet collision. Mirror only the visual rig for opposite side.",
+    "Authoring times are reference; bind release/build markers to existing gameplay events."
+  ],
+  "state_priority": [
+    "defeat",
+    "hit_react",
+    "heavy_shot",
+    "normal_shoot",
+    "move_loop",
+    "idle_loop"
+  ],
+  "authoring_note": "Translation/IK and terrain foot planting belong to implementation; angle keys only drive art bones and do not change root gameplay position."
+}
